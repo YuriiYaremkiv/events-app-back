@@ -9,9 +9,9 @@
     "target": "es2017",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
-      "paths": {
-      "schema/*": ["./src/schema/*"]
+    "baseUrl": "./src",
+    "paths": {
+      "*": ["./src/*"]
     },
     "incremental": true,
     "skipLibCheck": true,
