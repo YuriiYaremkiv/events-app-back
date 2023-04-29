@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 export class EventDto {
   @IsNotEmpty()
   @IsString()
-  readonly city: string;
+  readonly cityId: string;
 
   @IsNotEmpty()
   @IsString()
@@ -15,5 +15,9 @@ export class EventDto {
 
   @IsNotEmpty()
   @IsString()
-  readonly imagePath: string;
+  readonly date: string;
+
+  @IsNotEmpty()
+  @IsString()
+  readonly seats: string;
 }

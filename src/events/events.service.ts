@@ -14,15 +14,16 @@ export class EventService {
   ) {}
 
   async getCities() {
-    const cities = await this.cityModel.find({});
+    const cities = await this.cityModel.find({}).populate('events');
     return cities;
   }
 
   async addCity(cityEvent: CityDto, file) {
-    const { city, country, population } = cityEvent;
+    const { city, title, country, population } = cityEvent;
 
-    const createdCity = await this.cityModel.create({
+    await this.cityModel.create({
       city,
+      title,
       country,
       population,
     });
@@ -37,14 +38,30 @@ export class EventService {
     return category;
   }
 
-  async createCategory(eventDto: EventDto) {
-    const { title, description, imagePath } = eventDto;
+  async getEvent(id) {
+    const event = await this.eventModel.findOne({ cityId: id });
 
-    const category = await this.eventModel.create({
-      title,
-      description,
-      imagePath,
-    });
+    return event;
+  }
+
+  async addEvent(eventDto: EventDto) {
+    const { cityId, title, description, date, seats } = eventDto;
+
+    const cityEvent = await this.eventModel.findOne({ cityId: cityId });
+
+    if (cityEvent) {
+      await this.eventModel.updateOne(
+        { cityId },
+        { $push: { events: { title, description, date, seats } } },
+      );
+    } else {
+      await this.eventModel.create({
+        cityId,
+        events: [{ title, description, date, seats }],
+      });
+    }
+
+    const category = await this.eventModel.find();
     return category;
   }
 }

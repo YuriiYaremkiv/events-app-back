@@ -6,6 +6,7 @@ import {
   Post,
   UseInterceptors,
   UploadedFile,
+  Param,
 } from '@nestjs/common';
 import { EventService } from './events.service';
 import { EventDto } from './dto/event.dto';
@@ -35,13 +36,18 @@ export class EventsController {
     return 'delete this city';
   }
 
+  @Get('event/:id')
+  getEvent(@Param('id') id: string) {
+    return this.eventService.getEvent(id);
+  }
+
+  @Post('event')
+  addEvent(@Body() eventDto: EventDto) {
+    return this.eventService.addEvent(eventDto);
+  }
+
   @Get()
   getAllCategories() {
     return this.eventService.getAllCategories();
-  }
-
-  @Post()
-  createCategory(@Body() eventDto: EventDto) {
-    return this.eventService.createCategory(eventDto);
   }
 }

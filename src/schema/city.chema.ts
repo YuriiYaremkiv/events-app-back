@@ -1,10 +1,16 @@
-import { SchemaFactory, Schema, Prop } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument } from 'mongoose';
+import mongoose from 'mongoose';
 
-@Schema({ timestamps: true })
-export class City extends Document {
+export type CityDocument = HydratedDocument<City>;
+
+@Schema()
+export class City {
   @Prop()
   city: string;
+
+  @Prop()
+  title: string;
 
   @Prop()
   country: string;
@@ -12,11 +18,11 @@ export class City extends Document {
   @Prop()
   population: number;
 
-  // @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Event' })
-  // events: {
-  //   type: mongoose.Schema.Types.ObjectId;
-  //   ref: 'Event';
-  // };
+  @Prop({ default: '' })
+  imagePath: string;
+
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }] })
+  events: Event[];
 }
 
 export const CitySchema = SchemaFactory.createForClass(City);
