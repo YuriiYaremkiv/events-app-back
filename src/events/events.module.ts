@@ -4,6 +4,7 @@ import { EventService } from './events.service';
 import { EventsController } from './events.controller';
 import { Event, EventSchema } from '../schema/event.schema';
 import { City, CitySchema } from '../schema/city.schema';
+import { CloudService } from '../cloud/cloud.service';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { City, CitySchema } from '../schema/city.schema';
       { name: City.name, schema: CitySchema },
     ]),
   ],
-  providers: [EventService],
+  providers: [EventService, CloudService],
   controllers: [EventsController],
   exports: [EventService],
 })

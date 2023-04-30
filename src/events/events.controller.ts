@@ -31,9 +31,9 @@ export class EventsController {
     return this.eventService.addCity(cityDto, file);
   }
 
-  @Delete('city')
-  deleteCity() {
-    return 'delete this city';
+  @Delete('city/:cityId')
+  deleteCity(@Param('cityId') cityId: string) {
+    return this.eventService.deleteCity(cityId);
   }
 
   @Get('event/:id')

@@ -16,7 +16,7 @@ async function bootstrap() {
       'https://www.example.com',
       'https://app.example.com',
     ],
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'DELETE'],
     credentials: true,
   });
 
