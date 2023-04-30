@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Event } from 'src/schema/event.schema';
-import { City } from 'src/schema/city.chema';
+import { Event } from 'schema/event.schema';
+import { City } from 'schema/city.chema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EventDto } from './dto/event.dto';
@@ -9,8 +9,8 @@ import { CityDto } from './dto/city.dto';
 @Injectable()
 export class EventService {
   constructor(
-    @InjectModel('Event') private eventModel: Model<Event>,
-    @InjectModel('City') private cityModel: Model<City>,
+    @InjectModel(Event.name) private eventModel: Model<Event>,
+    @InjectModel(City.name) private cityModel: Model<City>,
   ) {}
 
   async getCities() {
