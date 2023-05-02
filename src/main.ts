@@ -15,6 +15,7 @@ async function bootstrap() {
       'https://example.com',
       'https://www.example.com',
       'https://app.example.com',
+      'https://events-app-front.vercel.app',
     ],
     methods: ['GET', 'POST', 'DELETE'],
     credentials: true,
