@@ -21,21 +21,25 @@ export class EventService {
   }
 
   async addCity(cityEvent: CityDto, file) {
-    const { city, title, country, population } = cityEvent;
+    try {
+      const { city, title, country, population } = cityEvent;
 
-    const imagePath = await this.cloudService.addFileCloud(file);
+      const imagePath = await this.cloudService.addFileCloud(file);
 
-    await this.cityModel.create({
-      city,
-      title,
-      country,
-      population,
-      imagePath,
-    });
+      await this.cityModel.create({
+        city,
+        title,
+        country,
+        population,
+        imagePath,
+      });
 
-    const allCities = await this.cityModel.find({});
+      const allCities = await this.cityModel.find({});
 
-    return allCities;
+      return allCities;
+    } catch (err) {
+      return err;
+    }
   }
 
   async deleteCity(cityId: string) {
