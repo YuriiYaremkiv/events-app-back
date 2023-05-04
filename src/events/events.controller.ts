@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Param,
+  Patch,
 } from '@nestjs/common';
 import { EventService } from './events.service';
 import { EventDto } from './dto/event.dto';
@@ -18,17 +19,23 @@ export class EventsController {
   constructor(private eventService: EventService) {}
 
   @Get('city')
-  getCategories() {
-    return this.eventService.getCities();
+  getCity() {
+    return this.eventService.getCity();
   }
 
   @Post('city')
   @UseInterceptors(FileInterceptor('picture'))
-  async addCity(
+  addCity(@UploadedFile() file: Express.Multer.File, @Body() cityDto: CityDto) {
+    return this.eventService.addCity(cityDto, file);
+  }
+
+  @Patch('city')
+  @UseInterceptors(FileInterceptor('picture'))
+  updateCity(
     @UploadedFile() file: Express.Multer.File,
     @Body() cityDto: CityDto,
   ) {
-    return this.eventService.addCity(cityDto, file);
+    return this.eventService.updateCity(cityDto, file);
   }
 
   @Delete('city/:cityId')
@@ -42,8 +49,12 @@ export class EventsController {
   }
 
   @Post('event')
-  addEvent(@Body() eventDto: EventDto) {
-    return this.eventService.addEvent(eventDto);
+  @UseInterceptors(FileInterceptor('picture'))
+  addEvent(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() eventDto: EventDto,
+  ) {
+    return this.eventService.addEvent(eventDto, file);
   }
 
   @Get()

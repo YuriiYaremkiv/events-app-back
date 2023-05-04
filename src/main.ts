@@ -17,7 +17,7 @@ async function bootstrap() {
       'https://app.example.com',
       'https://events-app-front.vercel.app',
     ],
-    methods: ['GET', 'POST', 'DELETE'],
+    methods: ['GET', 'POST', 'DELETE', 'PATCH'],
     credentials: true,
   });
 

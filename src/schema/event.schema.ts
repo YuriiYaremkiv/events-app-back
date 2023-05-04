@@ -19,6 +19,7 @@ export class Event {
       description: string;
       date: string;
       seats: string;
+      imagePath: string;
     },
   ];
 }

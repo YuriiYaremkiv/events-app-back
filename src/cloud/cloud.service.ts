@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { storage } from '../config/cloudConfig.js';
 import { cloudConfig } from '../config/cloudConfig.js';
-const bucketName = 'chat-connect';
+const bucketName = process.env.STORAGE_BUCKET_NAME;
+console.log('new bucket name', bucketName);
 
 @Injectable()
 export class CloudService {

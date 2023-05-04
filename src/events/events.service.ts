@@ -15,31 +15,68 @@ export class EventService {
     private readonly cloudService: CloudService,
   ) {}
 
-  async getCities() {
+  async getCity() {
     const cities = await this.cityModel.find({}).populate('events');
     return cities;
   }
 
   async addCity(cityEvent: CityDto, file) {
     try {
-      const { city, title, country, population } = cityEvent;
-
-      const imagePath = await this.cloudService.addFileCloud(file);
-
-      await this.cityModel.create({
+      const { city, title, country, population, showOnHomePage } = cityEvent;
+      const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
+      const addedCity = await this.cityModel.create({
         city,
         title,
         country,
         population,
+        showOnHomePage,
         imagePath,
       });
 
-      const allCities = await this.cityModel.find({});
-
-      return allCities;
+      return addedCity;
     } catch (err) {
       return err;
     }
+  }
+
+  async updateCity(cityEvent: CityDto, file: any) {
+    const {
+      _id: cityId,
+      city,
+      title,
+      country,
+      population,
+      showOnHomePage,
+    } = cityEvent;
+
+    const updateCity = await this.cityModel.findById(cityId);
+
+    if (!updateCity) {
+      throw new Error(`City with ID ${cityId} not found`);
+    }
+
+    if (file && updateCity.imagePath) {
+      await this.cloudService.deleteFileCloud(updateCity.imagePath);
+    }
+
+    const imagePath = file
+      ? await this.cloudService.addFileCloud(file)
+      : updateCity.imagePath;
+
+    const updatedCity = await this.cityModel.findOneAndUpdate(
+      { _id: cityId },
+      {
+        city,
+        title,
+        country,
+        population,
+        showOnHomePage,
+        imagePath,
+      },
+      { new: true },
+    );
+
+    return updatedCity;
   }
 
   async deleteCity(cityId: string) {
@@ -53,7 +90,7 @@ export class EventService {
     if (deletedCity.deletedCount === 0) {
       throw new Error(`City with ID ${cityId} not found`);
     }
-    return `City with ID ${cityId} deleted successfully`;
+    return cityId;
   }
 
   async getAllCategories() {
@@ -62,28 +99,34 @@ export class EventService {
   }
 
   async getEvent(cityId: string) {
-    const event = await this.eventModel.findOne({ cityId });
-    return event;
+    const events = await this.eventModel.findOne({ cityId });
+    return events;
   }
 
-  async addEvent(eventDto: EventDto) {
+  async addEvent(eventDto: EventDto, file: any) {
     const { cityId, title, description, date, seats } = eventDto;
 
-    const cityEvent = await this.eventModel.findOne({ cityId: cityId });
+    console.log('cityId', cityId);
 
-    if (cityEvent) {
+    const event = await this.eventModel.findOne({ cityId: cityId });
+
+    if (event) {
+      const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
+
       await this.eventModel.updateOne(
         { cityId },
-        { $push: { events: { title, description, date, seats } } },
+        { $push: { events: { title, description, date, seats, imagePath } } },
       );
     } else {
+      const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
+
       await this.eventModel.create({
         cityId,
-        events: [{ title, description, date, seats }],
+        events: [{ title, description, date, seats, imagePath }],
       });
     }
 
-    const category = await this.eventModel.find();
-    return category;
+    const events = await this.eventModel.findOne({ cityId });
+    return events;
   }
 }

@@ -1,6 +1,10 @@
+import { BlobOptions } from 'buffer';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CityDto {
+  @IsString()
+  readonly _id?: string;
+
   @IsNotEmpty()
   @IsString()
   readonly city: string;
@@ -16,6 +20,10 @@ export class CityDto {
   @IsNotEmpty()
   @IsString()
   readonly population: number;
+
+  @IsNotEmpty()
+  @IsString()
+  readonly showOnHomePage: boolean;
 
   @IsString()
   readonly imagePath?: string = '';

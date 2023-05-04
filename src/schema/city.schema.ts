@@ -18,6 +18,9 @@ export class City {
   @Prop()
   population: number;
 
+  @Prop({ default: false })
+  showOnHomePage: boolean;
+
   @Prop({ default: '' })
   imagePath: string;
 
