@@ -57,6 +57,15 @@ export class EventsController {
     return this.eventService.addEvent(eventDto, file);
   }
 
+  @Patch('event')
+  @UseInterceptors(FileInterceptor('picture'))
+  updateEvent(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() eventDto: EventDto,
+  ) {
+    return this.eventService.updateEvent(eventDto, file);
+  }
+
   @Get()
   getAllCategories() {
     return this.eventService.getAllCategories();

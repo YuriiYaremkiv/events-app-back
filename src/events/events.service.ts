@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import { EventDto } from './dto/event.dto';
 import { CityDto } from './dto/city.dto';
 import { CloudService } from '../cloud/cloud.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class EventService {
@@ -106,8 +107,6 @@ export class EventService {
   async addEvent(eventDto: EventDto, file: any) {
     const { cityId, title, description, date, seats } = eventDto;
 
-    console.log('cityId', cityId);
-
     const event = await this.eventModel.findOne({ cityId: cityId });
 
     if (event) {
@@ -115,18 +114,66 @@ export class EventService {
 
       await this.eventModel.updateOne(
         { cityId },
-        { $push: { events: { title, description, date, seats, imagePath } } },
+        {
+          $push: {
+            events: {
+              id: uuidv4(),
+              title,
+              description,
+              date,
+              seats,
+              imagePath,
+            },
+          },
+        },
       );
     } else {
       const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
 
       await this.eventModel.create({
         cityId,
-        events: [{ title, description, date, seats, imagePath }],
+        events: [{ id: uuidv4(), title, description, date, seats, imagePath }],
       });
     }
 
     const events = await this.eventModel.findOne({ cityId });
     return events;
+  }
+
+  async updateEvent(eventDto: EventDto, file: any) {
+    let imagePath = '';
+    const { eventId, cityId, title, description, date, seats } = eventDto;
+
+    const event = await this.eventModel.findOne({ cityId: cityId });
+    const foundEvent = event.events.find((e) => e.id === eventId);
+
+    imagePath = foundEvent.imagePath;
+
+    if (file && !foundEvent.imagePath) {
+      imagePath = await this.cloudService.addFileCloud(file);
+    }
+
+    if (file && foundEvent.imagePath) {
+      await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+      imagePath = await this.cloudService.addFileCloud(file);
+    }
+
+    const updatedEvent = await this.eventModel
+      .findOneAndUpdate(
+        { cityId, 'events.id': eventId },
+        {
+          $set: {
+            'events.$.title': title,
+            'events.$.description': description,
+            'events.$.date': date,
+            'events.$.seats': seats,
+            'events.$.imagePath': imagePath,
+          },
+        },
+        { new: true },
+      )
+      .exec();
+
+    return updatedEvent;
   }
 }

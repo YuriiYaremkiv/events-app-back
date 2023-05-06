@@ -1,6 +1,9 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class EventDto {
+  @IsString()
+  readonly eventId?: string;
+
   @IsNotEmpty()
   @IsString()
   readonly cityId: string;
