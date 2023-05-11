@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { storage } from '../config/cloudConfig.js';
 import { cloudConfig } from '../config/cloudConfig.js';
 const bucketName = process.env.STORAGE_BUCKET_NAME;
-console.log('new bucket name', bucketName);
 
 @Injectable()
 export class CloudService {
@@ -20,6 +19,7 @@ export class CloudService {
 
   async deleteFileCloud(fileName: string): Promise<void> {
     const fileCloudName = cloudConfig.publicToPrivatePath(fileName);
+    console.log('fileCloudName', fileCloudName);
     const file = storage.bucket(bucketName).file(fileCloudName);
     await file.delete();
   }

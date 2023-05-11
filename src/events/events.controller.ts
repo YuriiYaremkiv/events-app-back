@@ -66,6 +66,14 @@ export class EventsController {
     return this.eventService.updateEvent(eventDto, file);
   }
 
+  @Delete('event/:cityId/:eventId')
+  deleteEvent(
+    @Param('cityId') cityId: string,
+    @Param('eventId') eventId: string,
+  ) {
+    return this.eventService.deleteEvent({ cityId, eventId });
+  }
+
   @Get()
   getAllCategories() {
     return this.eventService.getAllCategories();

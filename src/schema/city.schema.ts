@@ -1,21 +1,21 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
-import mongoose from 'mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
+import { Event } from './event.schema';
 
 export type CityDocument = HydratedDocument<City>;
 
 @Schema()
 export class City {
-  @Prop()
+  @Prop({ required: true, unique: true })
   city: string;
 
-  @Prop()
+  @Prop({ required: true })
   title: string;
 
-  @Prop()
+  @Prop({ required: true })
   country: string;
 
-  @Prop()
+  @Prop({ required: true })
   population: number;
 
   @Prop({ default: false })
@@ -24,8 +24,8 @@ export class City {
   @Prop({ default: '' })
   imagePath: string;
 
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }] })
-  events: Event[];
+  @Prop()
+  events: [];
 }
 
 export const CitySchema = SchemaFactory.createForClass(City);

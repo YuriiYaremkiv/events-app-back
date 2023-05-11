@@ -1,18 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import mongoose from 'mongoose';
+import { City } from './city.schema';
 
-export type CatDocument = HydratedDocument<Event>;
+export type EventDocument = HydratedDocument<Event>;
 
-@Schema({ timestamps: true })
+@Schema()
 export class Event {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'City' })
-  cityId: {
-    type: mongoose.Schema.Types.ObjectId;
-    ref: 'City';
-  };
+  cityId: mongoose.Schema.Types.ObjectId;
 
-  @Prop()
+  @Prop({ type: [Object], required: true })
   events: [
     {
       id: string;

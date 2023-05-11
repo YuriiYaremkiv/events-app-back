@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Event } from '../schema/event.schema';
-import { City } from '../schema/city.schema';
+import { Event, EventDocument } from '../schema/event.schema';
+import { City, CityDocument } from '../schema/city.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EventDto } from './dto/event.dto';
@@ -11,14 +11,40 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class EventService {
   constructor(
-    @InjectModel(Event.name) private eventModel: Model<Event>,
-    @InjectModel(City.name) private cityModel: Model<City>,
+    @InjectModel(Event.name) private eventModel: Model<EventDocument>,
+    @InjectModel(City.name) private cityModel: Model<CityDocument>,
     private readonly cloudService: CloudService,
   ) {}
 
   async getCity() {
-    const cities = await this.cityModel.find({}).populate('events');
-    return cities;
+    try {
+      const cities = await this.cityModel.find().lean();
+      const cityIds = cities.map((city) => city._id);
+      const eventCounts = await this.eventModel.aggregate([
+        { $match: { cityId: { $in: cityIds } } },
+        {
+          $group: {
+            _id: '$cityId',
+            count: { $sum: { $size: '$events' } },
+          },
+        },
+      ]);
+
+      const eventCountMap = {};
+      eventCounts.forEach(
+        (eventCount) =>
+          (eventCountMap[eventCount._id.toString()] = eventCount.count),
+      );
+
+      const citiesWithEventCount = cities.map((city) => ({
+        ...city,
+        eventCount: eventCountMap[city._id.toString()] || 0,
+      }));
+
+      return citiesWithEventCount;
+    } catch (err) {
+      throw new Error(`Failed to get cities: ${err.message}`);
+    }
   }
 
   async addCity(cityEvent: CityDto, file) {
@@ -50,34 +76,38 @@ export class EventService {
       showOnHomePage,
     } = cityEvent;
 
-    const updateCity = await this.cityModel.findById(cityId);
+    try {
+      const updateCity = await this.cityModel.findById(cityId);
 
-    if (!updateCity) {
-      throw new Error(`City with ID ${cityId} not found`);
+      if (!updateCity) {
+        throw new Error(`City with ID ${cityId} not found`);
+      }
+
+      if (file && updateCity.imagePath) {
+        await this.cloudService.deleteFileCloud(updateCity.imagePath);
+      }
+
+      const imagePath = file
+        ? await this.cloudService.addFileCloud(file)
+        : updateCity.imagePath;
+
+      const updatedCity = await this.cityModel.findOneAndUpdate(
+        { _id: cityId },
+        {
+          city,
+          title,
+          country,
+          population,
+          showOnHomePage,
+          imagePath,
+        },
+        { new: true },
+      );
+
+      return updatedCity;
+    } catch (err) {
+      return err.message;
     }
-
-    if (file && updateCity.imagePath) {
-      await this.cloudService.deleteFileCloud(updateCity.imagePath);
-    }
-
-    const imagePath = file
-      ? await this.cloudService.addFileCloud(file)
-      : updateCity.imagePath;
-
-    const updatedCity = await this.cityModel.findOneAndUpdate(
-      { _id: cityId },
-      {
-        city,
-        title,
-        country,
-        population,
-        showOnHomePage,
-        imagePath,
-      },
-      { new: true },
-    );
-
-    return updatedCity;
   }
 
   async deleteCity(cityId: string) {
@@ -176,4 +206,45 @@ export class EventService {
 
     return updatedEvent;
   }
+
+  async deleteEvent({ cityId, eventId }: { cityId: string; eventId: string }) {
+    console.log('cityId', cityId, 'eventId', eventId);
+
+    const event = await this.eventModel.findOne({ cityId: cityId });
+    const foundEvent = event.events.find((e) => e.id === eventId);
+
+    if (foundEvent.imagePath) {
+      await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+    }
+
+    const updatedDoc = await this.eventModel.findOneAndUpdate(
+      { cityId },
+      { $pull: { events: { id: eventId } } },
+      { new: true },
+    );
+    return updatedDoc;
+  }
 }
+
+// const cities = await this.cityModel.aggregate([
+//   {
+//     $lookup: {
+//       from: 'events',
+//       localField: '_id',
+//       foreignField: 'cityId',
+//       as: 'events',
+//     },
+//   },
+//   {
+//     $project: {
+//       city: 1,
+//       title: 1,
+//       country: 1,
+//       population: 1,
+//       showOnHomePage: 1,
+//       imagePath: 1,
+//       events: '$events.events',
+//       totalEvents: 1,
+//     },
+//   },
+// ]);
