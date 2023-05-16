@@ -5,6 +5,8 @@ import { EventsController } from './events.controller';
 import { Event, EventSchema } from '../schema/event.schema';
 import { City, CitySchema } from '../schema/city.schema';
 import { CloudService } from '../cloud/cloud.service';
+import { AccessTokenStrategy } from '../auth/strategies/accessToken.strategy';
+import { RefreshTokenStrategy } from '../auth/strategies/refreshToken.strategy';
 
 @Module({
   imports: [
@@ -13,7 +15,12 @@ import { CloudService } from '../cloud/cloud.service';
       { name: City.name, schema: CitySchema },
     ]),
   ],
-  providers: [EventService, CloudService],
+  providers: [
+    EventService,
+    CloudService,
+    AccessTokenStrategy,
+    RefreshTokenStrategy,
+  ],
   controllers: [EventsController],
   exports: [EventService],
 })
