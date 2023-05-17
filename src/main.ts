@@ -8,12 +8,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
 
-  app.enableCors();
-  // app.enableCors({
-  //   origin: ['http://localhost:3000', 'https://events-app-front.vercel.app'],
-  //   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-  //   credentials: true,
-  // });
+  // app.enableCors();
+  app.enableCors({
+    origin: ['http://localhost:3000', 'https://events-app-front.vercel.app'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  });
 
   // app.enableCors({
   //   origin: 'https://events-app-front.vercel.app',
