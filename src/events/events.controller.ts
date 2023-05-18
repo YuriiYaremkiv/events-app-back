@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { EventService } from './events.service';
 import { EventDto } from './dto/event.dto';
@@ -20,9 +21,15 @@ import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 export class EventsController {
   constructor(private eventService: EventService) {}
 
+  // @Get(':id')
+  // getCityById(@Query() req: Request) {
+  //   console.log('get By id');
+  //   return this.eventService.getCity(req);
+  // }
+
   @Get('city')
-  getCity() {
-    return this.eventService.getCity();
+  getCity(@Query() req: Request) {
+    return this.eventService.getCity(req);
   }
 
   @UseGuards(AccessTokenGuard)
@@ -50,6 +57,7 @@ export class EventsController {
 
   @Get('event/:id')
   getEvent(@Param('id') id: string) {
+    console.log('console', id);
     return this.eventService.getEvent(id);
   }
 

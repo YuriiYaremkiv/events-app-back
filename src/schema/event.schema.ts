@@ -9,7 +9,7 @@ export class Event {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'City' })
   cityId: mongoose.Schema.Types.ObjectId;
 
-  @Prop({ type: [Object], required: true })
+  @Prop({ type: [], required: true })
   events: [
     {
       id: string;

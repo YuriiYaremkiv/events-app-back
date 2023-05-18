@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
+import { Event, EventDocument } from './event.schema';
 
 export type CityDocument = HydratedDocument<City>;
 
@@ -23,8 +24,8 @@ export class City {
   @Prop({ default: '' })
   imagePath: string;
 
-  @Prop()
-  events: [];
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }] })
+  events: Event[];
 }
 
 export const CitySchema = SchemaFactory.createForClass(City);

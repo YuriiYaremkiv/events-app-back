@@ -16,32 +16,47 @@ export class EventService {
     private readonly cloudService: CloudService,
   ) {}
 
-  async getCity() {
+  async getCity(req) {
+    console.log('getCity');
     try {
-      const cities = await this.cityModel.find().lean();
-      const cityIds = cities.map((city) => city._id);
-      const eventCounts = await this.eventModel.aggregate([
-        { $match: { cityId: { $in: cityIds } } },
+      const { limit = 10 } = req;
+
+      const cities = await this.cityModel.aggregate([
         {
-          $group: {
-            _id: '$cityId',
-            count: { $sum: { $size: '$events' } },
+          $lookup: {
+            from: 'events',
+            localField: '_id',
+            foreignField: 'cityId',
+            as: 'events',
           },
         },
+        { $unwind: { path: '$events', preserveNullAndEmptyArrays: true } },
+        { $addFields: { events: { $ifNull: ['$events.events', []] } } },
+        { $limit: Number(limit) },
       ]);
 
-      const eventCountMap = {};
-      eventCounts.forEach(
-        (eventCount) =>
-          (eventCountMap[eventCount._id.toString()] = eventCount.count),
-      );
+      const totalCounts = await this.cityModel.countDocuments();
 
-      const citiesWithEventCount = cities.map((city) => ({
-        ...city,
-        eventCount: eventCountMap[city._id.toString()] || 0,
-      }));
+      for (const city of cities) {
+        const data = city.events.reduce((acc, event) => {
+          const eventDate = new Date(event.date);
 
-      return citiesWithEventCount;
+          if (
+            (!acc || eventDate < new Date(acc?.date)) &&
+            eventDate.getTime() > Date.now()
+          ) {
+            acc = event;
+          }
+
+          return acc;
+        }, null);
+
+        city.upcomingEvent = data;
+        city.totalEvents = city.events.length;
+        city.events = [];
+      }
+
+      return { cities, totalCounts };
     } catch (err) {
       throw new Error(`Failed to get cities: ${err.message}`);
     }
@@ -129,9 +144,16 @@ export class EventService {
     return category;
   }
 
-  async getEvent(cityId: string) {
+  async getEvent(cityName: string) {
+    const regex = new RegExp(cityName, 'i');
+    const city = await this.cityModel.findOne({ city: { $regex: regex } });
+
+    const cityId = city._id;
+
     const events = await this.eventModel.findOne({ cityId });
-    return events;
+    console.log('events', events);
+    // events[0].city = 'sdfsdfsdf';
+    return { events, city: city.city };
   }
 
   async addEvent(eventDto: EventDto, file: any) {
@@ -225,26 +247,3 @@ export class EventService {
     return updatedDoc;
   }
 }
-
-// const cities = await this.cityModel.aggregate([
-//   {
-//     $lookup: {
-//       from: 'events',
-//       localField: '_id',
-//       foreignField: 'cityId',
-//       as: 'events',
-//     },
-//   },
-//   {
-//     $project: {
-//       city: 1,
-//       title: 1,
-//       country: 1,
-//       population: 1,
-//       showOnHomePage: 1,
-//       imagePath: 1,
-//       events: '$events.events',
-//       totalEvents: 1,
-//     },
-//   },
-// ]);
