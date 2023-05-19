@@ -21,12 +21,6 @@ import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 export class EventsController {
   constructor(private eventService: EventService) {}
 
-  // @Get(':id')
-  // getCityById(@Query() req: Request) {
-  //   console.log('get By id');
-  //   return this.eventService.getCity(req);
-  // }
-
   @Get('city')
   getCity(@Query() req: Request) {
     return this.eventService.getCity(req);
@@ -55,10 +49,9 @@ export class EventsController {
     return this.eventService.deleteCity(cityId);
   }
 
-  @Get('event/:id')
-  getEvent(@Param('id') id: string) {
-    console.log('console', id);
-    return this.eventService.getEvent(id);
+  @Get('event/:cityName')
+  getEvent(@Param('cityName') cityName: string, @Query() req: Request) {
+    return this.eventService.getEvent({ cityName, req });
   }
 
   @UseGuards(AccessTokenGuard)

@@ -7,6 +7,7 @@ import { EventDto } from './dto/event.dto';
 import { CityDto } from './dto/city.dto';
 import { CloudService } from '../cloud/cloud.service';
 import { v4 as uuidv4 } from 'uuid';
+import { processPaginationParams } from 'config/pagination';
 
 @Injectable()
 export class EventService {
@@ -16,10 +17,9 @@ export class EventService {
     private readonly cloudService: CloudService,
   ) {}
 
-  async getCity(req) {
-    console.log('getCity');
+  async getCity(req: any) {
     try {
-      const { limit = 10 } = req;
+      const { skip, limit, sort } = processPaginationParams(req);
 
       const cities = await this.cityModel.aggregate([
         {
@@ -32,6 +32,7 @@ export class EventService {
         },
         { $unwind: { path: '$events', preserveNullAndEmptyArrays: true } },
         { $addFields: { events: { $ifNull: ['$events.events', []] } } },
+        { $skip: skip },
         { $limit: Number(limit) },
       ]);
 
@@ -144,16 +145,21 @@ export class EventService {
     return category;
   }
 
-  async getEvent(cityName: string) {
-    const regex = new RegExp(cityName, 'i');
+  async getEvent({ cityName, req }: { cityName: string; req: any }) {
+    const { skip, limit, sort } = processPaginationParams(req);
+
+    const formattedCityName = cityName.replace(/\s+/g, '-');
+    const regex = new RegExp(formattedCityName, 'i');
     const city = await this.cityModel.findOne({ city: { $regex: regex } });
 
     const cityId = city._id;
 
     const events = await this.eventModel.findOne({ cityId });
-    console.log('events', events);
-    // events[0].city = 'sdfsdfsdf';
-    return { events, city: city.city };
+
+    const totalEvents = events.events.length;
+    const limitedEvents = events.events.slice(skip, skip + Number(limit));
+
+    return { events: limitedEvents, city: city.city, totalEvents };
   }
 
   async addEvent(eventDto: EventDto, file: any) {
