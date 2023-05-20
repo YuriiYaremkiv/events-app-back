@@ -1,4 +1,3 @@
-import { BlobOptions } from 'buffer';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CityDto {

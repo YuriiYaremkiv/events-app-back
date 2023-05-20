@@ -16,7 +16,9 @@ export class Event {
       title: string;
       description: string;
       date: string;
-      seats: string;
+      seats: number;
+      price: number;
+      categories: [];
       imagePath: string;
     },
   ];

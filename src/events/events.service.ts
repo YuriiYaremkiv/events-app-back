@@ -146,24 +146,59 @@ export class EventService {
   }
 
   async getEvent({ cityName, req }: { cityName: string; req: any }) {
+    console.log('this is req', req);
     const { skip, limit, sort } = processPaginationParams(req);
 
     const formattedCityName = cityName.replace(/\s+/g, '-');
     const regex = new RegExp(formattedCityName, 'i');
-    const city = await this.cityModel.findOne({ city: { $regex: regex } });
+    const currentCity = await this.cityModel.findOne({
+      city: { $regex: regex },
+    });
 
-    const cityId = city._id;
-
+    const cityId = currentCity._id;
     const events = await this.eventModel.findOne({ cityId });
-
-    const totalEvents = events.events.length;
     const limitedEvents = events.events.slice(skip, skip + Number(limit));
 
-    return { events: limitedEvents, city: city.city, totalEvents };
+    const eventsParams: any = events.events.reduce(
+      (acc, ev, _, array) => {
+        if (!acc.dateStart || new Date(acc.dateStart) >= new Date(ev.date))
+          acc.dateStart = ev.date;
+        if (!acc.dateEnd || new Date(acc.dateEnd) <= new Date(ev.date))
+          acc.dateEnd = ev.date;
+        if (acc.seatsMin >= Number(ev.seats)) acc.seatsMin = Number(ev.seats);
+        if (acc.seatsMax <= Number(ev.seats)) acc.seatsMax = Number(ev.seats);
+        if (acc.priceMin >= Number(ev.price)) acc.priceMin = Number(ev.price);
+        if (acc.priceMax <= Number(ev.price)) acc.priceMax = Number(ev.price);
+        acc.categories = Array.from(
+          new Set([...acc.categories, ...(ev.categories || [])]),
+        );
+        acc.totalEvents = array.length;
+        return acc;
+      },
+      {
+        dateStart: '',
+        dateEnd: '',
+        seatsMin: 0,
+        seatsMax: 0,
+        priceMin: 0,
+        priceMax: 0,
+        categories: [],
+        totalEvents: 0,
+        cityName: currentCity.city,
+        cityId: currentCity._id,
+      },
+    );
+
+    return {
+      events: limitedEvents,
+      eventsParams,
+      city: currentCity.city,
+    };
   }
 
   async addEvent(eventDto: EventDto, file: any) {
-    const { cityId, title, description, date, seats } = eventDto;
+    const { cityId, title, description, date, seats, price, categories } =
+      eventDto;
 
     const event = await this.eventModel.findOne({ cityId: cityId });
 
@@ -180,6 +215,8 @@ export class EventService {
               description,
               date,
               seats,
+              price,
+              categories: categories.split(','),
               imagePath,
             },
           },
