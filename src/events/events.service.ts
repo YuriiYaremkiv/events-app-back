@@ -170,7 +170,6 @@ export class EventService {
 
     const cityId = currentCity._id;
     const events = await this.eventModel.findOne({ cityId });
-    const limitedEvents = events.events.slice(skip, skip + Number(limit));
 
     const eventsParams: any = events.events.reduce(
       (acc, ev, _, array) => {
