@@ -7,7 +7,7 @@ import { EventDto } from './dto/event.dto';
 import { CityDto } from './dto/city.dto';
 import { CloudService } from '../cloud/cloud.service';
 import { v4 as uuidv4 } from 'uuid';
-import { processPaginationParams } from 'config/pagination';
+import { processPaginationParams } from '../config/pagination';
 
 @Injectable()
 export class EventService {
@@ -145,9 +145,22 @@ export class EventService {
     return category;
   }
 
-  async getEvent({ cityName, req }: { cityName: string; req: any }) {
-    console.log('this is req', req);
-    const { skip, limit, sort } = processPaginationParams(req);
+  async getEvent({ cityName, req }: { cityName: string; req }) {
+    const {
+      page,
+      limit,
+      searchQuery,
+      dateStart,
+      dataEnd,
+      categories,
+      seatsMin,
+      seatsMax,
+      priceMin,
+      priceMax,
+      hasFreePlaces,
+    } = req;
+
+    const { skip, sort } = processPaginationParams(req);
 
     const formattedCityName = cityName.replace(/\s+/g, '-');
     const regex = new RegExp(formattedCityName, 'i');
@@ -165,10 +178,10 @@ export class EventService {
           acc.dateStart = ev.date;
         if (!acc.dateEnd || new Date(acc.dateEnd) <= new Date(ev.date))
           acc.dateEnd = ev.date;
-        if (acc.seatsMin >= Number(ev.seats)) acc.seatsMin = Number(ev.seats);
-        if (acc.seatsMax <= Number(ev.seats)) acc.seatsMax = Number(ev.seats);
-        if (acc.priceMin >= Number(ev.price)) acc.priceMin = Number(ev.price);
-        if (acc.priceMax <= Number(ev.price)) acc.priceMax = Number(ev.price);
+        if (acc.seatsMin >= ev.seats) acc.seatsMin = +ev.seats;
+        if (acc.seatsMax <= ev.seats) acc.seatsMax = +ev.seats;
+        if (acc.priceMin >= ev.price) acc.priceMin = +ev.price;
+        if (acc.priceMax <= ev.price) acc.priceMax = +ev.price;
         acc.categories = Array.from(
           new Set([...acc.categories, ...(ev.categories || [])]),
         );
@@ -189,8 +202,31 @@ export class EventService {
       },
     );
 
+    const filtredEvents = events.events.filter((event) => {
+      if (searchQuery && !event.title.includes(searchQuery)) return false;
+      if (searchQuery && !event.description.includes(searchQuery)) return false;
+
+      if (dateStart && new Date(dateStart) > new Date(event.date)) return false;
+      if (dataEnd && new Date(dataEnd) < new Date(event.date)) return false;
+
+      if (categories) {
+        for (const cat of categories) {
+          const newArray: string[] = Array.from(event.categories);
+          if (!newArray.includes(cat)) return false;
+        }
+      }
+
+      if (seatsMin && +seatsMin > +event.seats) return false;
+      if (seatsMax && +seatsMax < +event.seats) return false;
+      if (priceMin && +priceMin > +event.price) return false;
+      if (priceMax && +priceMax < +event.price) return false;
+
+      return true;
+    });
+
     return {
-      events: limitedEvents,
+      events: filtredEvents,
+      filtredEvents: filtredEvents,
       eventsParams,
       city: currentCity.city,
     };
