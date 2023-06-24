@@ -21,6 +21,16 @@ import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 export class EventsController {
   constructor(private eventService: EventService) {}
 
+  @Get('cities')
+  getCityToHomePage() {
+    return this.eventService.getCityToHomePage();
+  }
+
+  @Get('cities/list')
+  getCities(@Query() req: Request) {
+    return this.eventService.getCities(req);
+  }
+
   @Get('city')
   getCity(@Query() req: Request) {
     return this.eventService.getCity(req);

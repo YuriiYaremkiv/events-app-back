@@ -17,6 +17,27 @@ export class EventService {
     private readonly cloudService: CloudService,
   ) {}
 
+  async getCityToHomePage() {
+    const eventsFromHomePage = await this.cityModel.find({
+      showOnHomePage: true,
+    });
+
+    return eventsFromHomePage;
+  }
+
+  async getCities(req: any) {
+    const { skip, limit, sort } = processPaginationParams(req);
+
+    const totalCounts = await this.cityModel.countDocuments();
+    const events = await this.cityModel
+      .find({})
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+
+    return { cities: events, totalCities: totalCounts };
+  }
+
   async getCity(req: any) {
     try {
       const { skip, limit, sort } = processPaginationParams(req);
