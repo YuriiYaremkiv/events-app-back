@@ -24,8 +24,8 @@ export class City {
   @Prop({ default: '' })
   imagePath: string;
 
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }] })
-  events: Event[];
+  @Prop()
+  events: any[];
 }
 
 export const CitySchema = SchemaFactory.createForClass(City);

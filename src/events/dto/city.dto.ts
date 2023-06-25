@@ -4,12 +4,8 @@ export class CityDto {
   @IsString()
   readonly _id?: string;
 
-  @IsNotEmpty()
-  @IsString()
   readonly city: string;
 
-  @IsNotEmpty()
-  @IsString()
   readonly title: string;
 
   @IsNotEmpty()
@@ -26,4 +22,6 @@ export class CityDto {
 
   @IsString()
   readonly imagePath?: string = '';
+
+  readonly events: any[];
 }

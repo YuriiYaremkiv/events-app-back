@@ -60,10 +60,15 @@ export class EventsController {
   }
 
   @Get('event/:cityName')
-  getEvent(@Param('cityName') cityName: string, @Query() req: Request) {
-    return this.eventService.getEvent({ cityName, req });
+  getEventsOfCity(@Param('cityName') cityName: string, @Query() req: Request) {
+    return this.eventService.getEventsOfCity({ cityName, req });
   }
+  // @Get('event/:cityName')
+  // getEvent(@Param('cityName') cityName: string, @Query() req: Request) {
+  //   return this.eventService.getEvent({ cityName, req });
+  // }
 
+  // New block code
   @UseGuards(AccessTokenGuard)
   @Post('event')
   @UseInterceptors(FileInterceptor('picture'))

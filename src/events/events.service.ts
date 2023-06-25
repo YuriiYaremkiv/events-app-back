@@ -26,62 +26,21 @@ export class EventService {
   }
 
   async getCities(req: any) {
-    const { skip, limit, sort } = processPaginationParams(req);
+    const { skip, limit } = processPaginationParams(req);
 
     const totalCounts = await this.cityModel.countDocuments();
-    const events = await this.cityModel
-      .find({})
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
+    const events = await this.cityModel.find({}).skip(skip).limit(limit);
 
     return { cities: events, totalCities: totalCounts };
   }
 
   async getCity(req: any) {
-    try {
-      const { skip, limit, sort } = processPaginationParams(req);
+    const { skip, limit } = processPaginationParams(req);
 
-      const cities = await this.cityModel.aggregate([
-        {
-          $lookup: {
-            from: 'events',
-            localField: '_id',
-            foreignField: 'cityId',
-            as: 'events',
-          },
-        },
-        { $unwind: { path: '$events', preserveNullAndEmptyArrays: true } },
-        { $addFields: { events: { $ifNull: ['$events.events', []] } } },
-        { $skip: skip },
-        { $limit: Number(limit) },
-      ]);
+    const totalCounts = await this.cityModel.countDocuments();
+    const events = await this.cityModel.find({}).skip(skip).limit(limit);
 
-      const totalCounts = await this.cityModel.countDocuments();
-
-      for (const city of cities) {
-        const data = city.events.reduce((acc, event) => {
-          const eventDate = new Date(event.date);
-
-          if (
-            (!acc || eventDate < new Date(acc?.date)) &&
-            eventDate.getTime() > Date.now()
-          ) {
-            acc = event;
-          }
-
-          return acc;
-        }, null);
-
-        city.upcomingEvent = data;
-        city.totalEvents = city.events.length;
-        city.events = [];
-      }
-
-      return { cities, totalCounts };
-    } catch (err) {
-      throw new Error(`Failed to get cities: ${err.message}`);
-    }
+    return { cities: events, totalCities: totalCounts };
   }
 
   async addCity(cityEvent: CityDto, file) {
@@ -166,138 +125,75 @@ export class EventService {
     return category;
   }
 
-  async getEvent({ cityName, req }: { cityName: string; req }) {
-    const {
-      page,
-      limit,
-      searchQuery,
-      dateStart,
-      dataEnd,
-      categories,
-      seatsMin,
-      seatsMax,
-      priceMin,
-      priceMax,
-      hasFreePlaces,
-    } = req;
+  async getEventsOfCity({ cityName, req }: { cityName: string; req }) {
+    const city = await this.cityModel.findOne({ city: cityName });
 
-    const { skip, sort } = processPaginationParams(req);
-
-    const formattedCityName = cityName.replace(/\s+/g, '-');
-    const regex = new RegExp(formattedCityName, 'i');
-    const currentCity = await this.cityModel.findOne({
-      city: { $regex: regex },
-    });
-
-    const cityId = currentCity._id;
-    const events = await this.eventModel.findOne({ cityId });
-
-    const eventsParams: any = events.events.reduce(
-      (acc, ev, _, array) => {
-        if (!acc.dateStart || new Date(acc.dateStart) >= new Date(ev.date))
-          acc.dateStart = ev.date;
-        if (!acc.dateEnd || new Date(acc.dateEnd) <= new Date(ev.date))
-          acc.dateEnd = ev.date;
-        if (acc.seatsMin >= ev.seats) acc.seatsMin = +ev.seats;
-        if (acc.seatsMax <= ev.seats) acc.seatsMax = +ev.seats;
-        if (acc.priceMin >= ev.price) acc.priceMin = +ev.price;
-        if (acc.priceMax <= ev.price) acc.priceMax = +ev.price;
-        acc.categories = Array.from(
-          new Set([...acc.categories, ...(ev.categories || [])]),
-        );
-        acc.totalEvents = array.length;
-        return acc;
-      },
-      {
-        dateStart: '',
-        dateEnd: '',
-        seatsMin: 0,
-        seatsMax: 0,
-        priceMin: 0,
-        priceMax: 0,
-        categories: [],
-        totalEvents: 0,
-        cityName: currentCity.city,
-        cityId: currentCity._id,
-      },
-    );
-
-    const filtredEvents = events.events.filter((event) => {
-      if (searchQuery && !event.title.includes(searchQuery)) return false;
-      if (searchQuery && !event.description.includes(searchQuery)) return false;
-
-      if (dateStart && new Date(dateStart) > new Date(event.date)) return false;
-      if (dataEnd && new Date(dataEnd) < new Date(event.date)) return false;
-
-      if (categories) {
-        for (const cat of categories) {
-          const newArray: string[] = Array.from(event.categories);
-          if (!newArray.includes(cat)) return false;
-        }
-      }
-
-      if (seatsMin && +seatsMin > +event.seats) return false;
-      if (seatsMax && +seatsMax < +event.seats) return false;
-      if (priceMin && +priceMin > +event.price) return false;
-      if (priceMax && +priceMax < +event.price) return false;
-
-      return true;
-    });
-
-    return {
-      events: filtredEvents,
-      filtredEvents: filtredEvents,
-      eventsParams,
-      city: currentCity.city,
+    const eventsParams = {
+      dateStart: '',
+      dateEnd: '',
+      seatsMin: 0,
+      seatsMax: 0,
+      priceMin: 0,
+      priceMax: 0,
+      categories: [],
+      totalEvents: 0,
+      cityName: city.city,
+      cityId: city._id,
     };
+
+    return { events: city.events, eventsParams };
   }
 
   async addEvent(eventDto: EventDto, file: any) {
+    let imagePath = '';
     const { cityId, title, description, date, seats, price, categories } =
       eventDto;
 
-    const event = await this.eventModel.findOne({ cityId: cityId });
+    const city = await this.cityModel.findById(cityId);
+    if (city) {
+      imagePath = file ? await this.cloudService.addFileCloud(file) : '';
 
-    if (event) {
-      const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
-
-      await this.eventModel.updateOne(
-        { cityId },
-        {
-          $push: {
-            events: {
-              id: uuidv4(),
-              title,
-              description,
-              date,
-              seats,
-              price,
-              categories: categories.split(','),
-              imagePath,
-            },
-          },
-        },
-      );
-    } else {
-      const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
-
-      await this.eventModel.create({
-        cityId,
-        events: [{ id: uuidv4(), title, description, date, seats, imagePath }],
-      });
+      const newEvent: any = {
+        id: uuidv4(),
+        title,
+        description,
+        date,
+        seats,
+        price,
+        categories: categories.split(','),
+        imagePath,
+      };
+      city.events.push(newEvent);
+      await city.save();
     }
 
-    const events = await this.eventModel.findOne({ cityId });
-    return events;
+    const updatedCity = await this.cityModel.findById(cityId);
+    return { events: updatedCity.events, cityId };
   }
 
   async updateEvent(eventDto: EventDto, file: any) {
     let imagePath = '';
-    const { eventId, cityId, title, description, date, seats } = eventDto;
+    const {
+      eventId,
+      cityId,
+      title,
+      description,
+      date,
+      seats,
+      price,
+      categories,
+    } = eventDto;
 
-    const event = await this.eventModel.findOne({ cityId: cityId });
-    const foundEvent = event.events.find((e) => e.id === eventId);
+    const city = await this.cityModel.findById(cityId);
 
+    if (!city) throw new Error('City not found');
+
+    const foundEventIndex = city.events.findIndex((e: any) => e.id === eventId);
+    if (foundEventIndex === -1) {
+      throw new Error('Event not found');
+    }
+
+    const foundEvent = city.events[foundEventIndex];
     imagePath = foundEvent.imagePath;
 
     if (file && !foundEvent.imagePath) {
@@ -309,40 +205,219 @@ export class EventService {
       imagePath = await this.cloudService.addFileCloud(file);
     }
 
-    const updatedEvent = await this.eventModel
-      .findOneAndUpdate(
-        { cityId, 'events.id': eventId },
-        {
-          $set: {
-            'events.$.title': title,
-            'events.$.description': description,
-            'events.$.date': date,
-            'events.$.seats': seats,
-            'events.$.imagePath': imagePath,
-          },
-        },
-        { new: true },
-      )
-      .exec();
+    const updatedEvent = {
+      ...foundEvent,
+      title,
+      description,
+      date,
+      seats,
+      imagePath,
+      price,
+      categories,
+    };
 
-    return updatedEvent;
+    city.events[foundEventIndex] = updatedEvent;
+    await city.save();
+
+    return { updatedEvent, cityId };
   }
 
   async deleteEvent({ cityId, eventId }: { cityId: string; eventId: string }) {
-    console.log('cityId', cityId, 'eventId', eventId);
+    const city = await this.cityModel.findById(cityId);
+    const foundEventIndex = city.events.findIndex((e) => e.id === eventId);
 
-    const event = await this.eventModel.findOne({ cityId: cityId });
-    const foundEvent = event.events.find((e) => e.id === eventId);
+    if (foundEventIndex !== -1) {
+      const foundEvent = city.events[foundEventIndex];
 
-    if (foundEvent.imagePath) {
-      await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+      if (foundEvent.imagePath) {
+        await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+      }
+
+      city.events.splice(foundEventIndex, 1);
+      await city.save();
     }
 
-    const updatedDoc = await this.eventModel.findOneAndUpdate(
-      { cityId },
-      { $pull: { events: { id: eventId } } },
-      { new: true },
-    );
-    return updatedDoc;
+    const updatedCity = await this.cityModel.findById(cityId);
+    return { events: updatedCity.events, cityId };
   }
 }
+
+// async addEvent(eventDto: EventDto, file: any) {
+//     const { cityId, title, description, date, seats, price, categories } =
+//       eventDto;
+
+//     const event = await this.eventModel.findOne({ cityId: cityId });
+
+//     if (event) {
+//       const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
+
+//       await this.eventModel.updateOne(
+//         { cityId },
+//         {
+//           $push: {
+//             events: {
+//               id: uuidv4(),
+//               title,
+//               description,
+//               date,
+//               seats,
+//               price,
+//               categories: categories.split(','),
+//               imagePath,
+//             },
+//           },
+//         },
+//       );
+//     } else {
+//       const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
+
+//       await this.eventModel.create({
+//         cityId,
+//         events: [{ id: uuidv4(), title, description, date, seats, imagePath }],
+//       });
+//     }
+
+//     const events = await this.eventModel.findOne({ cityId });
+//     return events;
+//   }
+
+// async updateEvent(eventDto: EventDto, file: any) {
+//     let imagePath = '';
+//     const { eventId, cityId, title, description, date, seats } = eventDto;
+
+//     const event = await this.eventModel.findOne({ cityId: cityId });
+//     const foundEvent = event.events.find((e) => e.id === eventId);
+
+//     imagePath = foundEvent.imagePath;
+
+//     if (file && !foundEvent.imagePath) {
+//       imagePath = await this.cloudService.addFileCloud(file);
+//     }
+
+//     if (file && foundEvent.imagePath) {
+//       await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+//       imagePath = await this.cloudService.addFileCloud(file);
+//     }
+
+//     const updatedEvent = await this.eventModel
+//       .findOneAndUpdate(
+//         { cityId, 'events.id': eventId },
+//         {
+//           $set: {
+//             'events.$.title': title,
+//             'events.$.description': description,
+//             'events.$.date': date,
+//             'events.$.seats': seats,
+//             'events.$.imagePath': imagePath,
+//           },
+//         },
+//         { new: true },
+//       )
+//       .exec();
+
+//     return updatedEvent;
+//   }
+
+//  async getEvent({ cityName, req }: { cityName: string; req }) {
+//     const {
+//       page,
+//       limit,
+//       searchQuery,
+//       dateStart,
+//       dataEnd,
+//       categories,
+//       seatsMin,
+//       seatsMax,
+//       priceMin,
+//       priceMax,
+//       hasFreePlaces,
+//     } = req;
+
+//     const { skip, sort } = processPaginationParams(req);
+
+//     const formattedCityName = cityName.replace(/\s+/g, '-');
+//     const regex = new RegExp(formattedCityName, 'i');
+//     const currentCity = await this.cityModel.findOne({
+//       city: { $regex: regex },
+//     });
+
+//     const cityId = currentCity._id;
+//     const events = await this.eventModel.findOne({ cityId });
+
+//     const eventsParams: any = events.events.reduce(
+//       (acc, ev, _, array) => {
+//         if (!acc.dateStart || new Date(acc.dateStart) >= new Date(ev.date))
+//           acc.dateStart = ev.date;
+//         if (!acc.dateEnd || new Date(acc.dateEnd) <= new Date(ev.date))
+//           acc.dateEnd = ev.date;
+//         if (acc.seatsMin >= ev.seats) acc.seatsMin = +ev.seats;
+//         if (acc.seatsMax <= ev.seats) acc.seatsMax = +ev.seats;
+//         if (acc.priceMin >= ev.price) acc.priceMin = +ev.price;
+//         if (acc.priceMax <= ev.price) acc.priceMax = +ev.price;
+//         acc.categories = Array.from(
+//           new Set([...acc.categories, ...(ev.categories || [])]),
+//         );
+//         acc.totalEvents = array.length;
+//         return acc;
+//       },
+//       {
+//         dateStart: '',
+//         dateEnd: '',
+//         seatsMin: 0,
+//         seatsMax: 0,
+//         priceMin: 0,
+//         priceMax: 0,
+//         categories: [],
+//         totalEvents: 0,
+//         cityName: currentCity.city,
+//         cityId: currentCity._id,
+//       },
+//     );
+
+//     const filtredEvents = events.events.filter((event) => {
+//       if (searchQuery && !event.title.includes(searchQuery)) return false;
+//       if (searchQuery && !event.description.includes(searchQuery)) return false;
+
+//       if (dateStart && new Date(dateStart) > new Date(event.date)) return false;
+//       if (dataEnd && new Date(dataEnd) < new Date(event.date)) return false;
+
+//       if (categories) {
+//         for (const cat of categories) {
+//           const newArray: string[] = Array.from(event.categories);
+//           if (!newArray.includes(cat)) return false;
+//         }
+//       }
+
+//       if (seatsMin && +seatsMin > +event.seats) return false;
+//       if (seatsMax && +seatsMax < +event.seats) return false;
+//       if (priceMin && +priceMin > +event.price) return false;
+//       if (priceMax && +priceMax < +event.price) return false;
+
+//       return true;
+//     });
+
+//     return {
+//       events: filtredEvents,
+//       filtredEvents: filtredEvents,
+//       eventsParams,
+//       city: currentCity.city,
+//     };
+//   }
+
+// async deleteEvent({ cityId, eventId }: { cityId: string; eventId: string }) {
+//   console.log('cityId', cityId, 'eventId', eventId);
+
+//   const event = await this.eventModel.findOne({ cityId: cityId });
+//   const foundEvent = event.events.find((e) => e.id === eventId);
+
+//   if (foundEvent.imagePath) {
+//     await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+//   }
+
+//   const updatedDoc = await this.eventModel.findOneAndUpdate(
+//     { cityId },
+//     { $pull: { events: { id: eventId } } },
+//     { new: true },
+//   );
+//   return updatedDoc;
+// }
