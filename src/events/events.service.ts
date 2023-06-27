@@ -18,20 +18,37 @@ export class EventService {
   ) {}
 
   async getCityToHomePage() {
-    const eventsFromHomePage = await this.cityModel.find({
-      showOnHomePage: true,
-    });
+    const cities = await this.cityModel
+      .find({ showOnHomePage: true }, '-__v')
+      .lean();
 
-    return eventsFromHomePage;
+    const updatedCities = cities.map((city: any) => ({
+      ...city,
+      totalEvents: city.events.length,
+      events: [],
+    }));
+
+    return updatedCities;
   }
 
   async getCities(req: any) {
     const { skip, limit } = processPaginationParams(req);
 
     const totalCounts = await this.cityModel.countDocuments();
-    const events = await this.cityModel.find({}).skip(skip).limit(limit);
 
-    return { cities: events, totalCities: totalCounts };
+    const allCities = await this.cityModel.find({}).lean();
+
+    const uniqueCountries = [...new Set(allCities.map((city) => city.country))];
+    const uniqueCities = [...new Set(allCities.map((city) => city.city))];
+
+    const searchParams = {
+      countries: uniqueCountries,
+      cities: uniqueCities,
+    };
+
+    const cities = await this.cityModel.find({}).skip(skip).limit(limit);
+
+    return { cities, totalCities: totalCounts, searchParams };
   }
 
   async getCity(req: any) {
@@ -46,11 +63,14 @@ export class EventService {
   async addCity(cityEvent: CityDto, file) {
     try {
       const { city, title, country, population, showOnHomePage } = cityEvent;
+
+      console.log('country', country, 'city', city);
+
       const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
       const addedCity = await this.cityModel.create({
-        city,
+        city: JSON.parse(city),
         title,
-        country,
+        country: JSON.parse(country),
         population,
         showOnHomePage,
         imagePath,
@@ -90,9 +110,9 @@ export class EventService {
       const updatedCity = await this.cityModel.findOneAndUpdate(
         { _id: cityId },
         {
-          city,
+          city: JSON.parse(city),
           title,
-          country,
+          country: JSON.parse(country),
           population,
           showOnHomePage,
           imagePath,
@@ -125,8 +145,12 @@ export class EventService {
     return category;
   }
 
-  async getEventsOfCity({ cityName, req }: { cityName: string; req }) {
-    const city = await this.cityModel.findOne({ city: cityName });
+  async getEventsOfCity({ cityName, req }: { cityName: string; req: any }) {
+    const city: any = await this.cityModel.findOne({
+      'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
+    });
+
+    if (!city) return null;
 
     const eventsParams = {
       dateStart: '',
@@ -137,7 +161,7 @@ export class EventService {
       priceMax: 0,
       categories: [],
       totalEvents: 0,
-      cityName: city.city,
+      cityName: city.city.label,
       cityId: city._id,
     };
 

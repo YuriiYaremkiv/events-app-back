@@ -4,13 +4,13 @@ export class CityDto {
   @IsString()
   readonly _id?: string;
 
-  readonly city: string;
+  readonly city: any;
 
   readonly title: string;
 
   @IsNotEmpty()
   @IsString()
-  readonly country: string;
+  readonly country: any;
 
   @IsNotEmpty()
   @IsString()

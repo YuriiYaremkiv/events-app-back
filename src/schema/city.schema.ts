@@ -1,19 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-import { Event, EventDocument } from './event.schema';
 
 export type CityDocument = HydratedDocument<City>;
 
 @Schema()
 export class City {
-  @Prop({ required: true, unique: true })
-  city: string;
+  @Prop({ required: true, type: mongoose.Schema.Types.Mixed })
+  city: string | { label: string; population: number; country: string };
 
   @Prop({ required: true })
   title: string;
 
-  @Prop({ required: true })
-  country: string;
+  @Prop({ required: true, type: mongoose.Schema.Types.Mixed })
+  country: string | { name: string; label: string; phone: number };
 
   @Prop({ required: true })
   population: number;

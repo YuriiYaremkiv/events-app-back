@@ -19,7 +19,6 @@ export class CloudService {
 
   async deleteFileCloud(fileName: string): Promise<void> {
     const fileCloudName = cloudConfig.publicToPrivatePath(fileName);
-    console.log('fileCloudName', fileCloudName);
     const file = storage.bucket(bucketName).file(fileCloudName);
     await file.delete();
   }
