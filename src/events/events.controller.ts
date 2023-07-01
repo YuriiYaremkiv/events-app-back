@@ -21,11 +21,6 @@ import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 export class EventsController {
   constructor(private eventService: EventService) {}
 
-  @Get('cities')
-  getCityToHomePage() {
-    return this.eventService.getCityToHomePage();
-  }
-
   @Get('cities/list')
   getCities(@Query() req: Request) {
     return this.eventService.getCities(req);
@@ -33,7 +28,7 @@ export class EventsController {
 
   @Get('city')
   getCity(@Query() req: Request) {
-    return this.eventService.getCity(req);
+    return this.eventService.getCities(req);
   }
 
   @UseGuards(AccessTokenGuard)
@@ -60,9 +55,23 @@ export class EventsController {
   }
 
   @Get('event/:cityName')
-  getEventsOfCity(@Param('cityName') cityName: string, @Query() req: Request) {
-    return this.eventService.getEventsOfCity({ cityName, req });
+  getEvents(@Param('cityName') cityName: string, @Query() req: Request) {
+    return this.eventService.getEvents({ cityName, req });
   }
+
+  @Get('events')
+  getAllEvents(@Query() req: Request) {
+    return this.eventService.getAllEvents(req);
+  }
+
+  @Get('event/:cityName/:eventName')
+  getSingleEvent(
+    @Param('cityName') cityName: string,
+    @Param('eventName') eventName: string,
+  ) {
+    return this.eventService.getSingleEvent({ cityName, eventName });
+  }
+
   // @Get('event/:cityName')
   // getEvent(@Param('cityName') cityName: string, @Query() req: Request) {
   //   return this.eventService.getEvent({ cityName, req });

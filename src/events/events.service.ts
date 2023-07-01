@@ -1,3 +1,4 @@
+import { Length } from 'class-validator';
 import { Injectable } from '@nestjs/common';
 import { Event, EventDocument } from '../schema/event.schema';
 import { City, CityDocument } from '../schema/city.schema';
@@ -17,63 +18,72 @@ export class EventService {
     private readonly cloudService: CloudService,
   ) {}
 
-  async getCityToHomePage() {
-    const cities = await this.cityModel
-      .find({ showOnHomePage: true }, '-__v')
-      .lean();
-
-    const updatedCities = cities.map((city: any) => ({
-      ...city,
-      totalEvents: city.events.length,
-      events: [],
-    }));
-
-    return updatedCities;
-  }
-
   async getCities(req: any) {
     const { skip, limit } = processPaginationParams(req);
+    const { cities, countries, showOnHomePage, isHidden, showInCityHome } = req;
 
-    const totalCounts = await this.cityModel.countDocuments();
+    const query = {};
+    if (!isHidden) query['isHidden'] = false;
+    if (showOnHomePage) query['showOnHomePage'] = showOnHomePage;
+    if (countries) query['country.label'] = { $in: countries.split(',') };
+    if (cities) query['city.label'] = { $in: cities.split(',') };
 
-    const allCities = await this.cityModel.find({}).lean();
+    const [totalCities, allCities] = await Promise.all([
+      this.cityModel.countDocuments(),
+      this.cityModel.find(query).skip(skip).limit(limit).lean(),
+    ]);
+
+    allCities.forEach((city: any) => {
+      city.totalEvents = city.events.length;
+      if (showInCityHome) {
+        city.events = city.events.filter(
+          (event: any) => event.showInCityHome && !event.isHidden,
+        );
+      } else {
+        city.events = [];
+      }
+
+      return city;
+    });
 
     const uniqueCountries = [...new Set(allCities.map((city) => city.country))];
     const uniqueCities = [...new Set(allCities.map((city) => city.city))];
 
-    const searchParams = {
-      countries: uniqueCountries,
-      cities: uniqueCities,
+    return {
+      cities: allCities,
+      totalCities,
+      searchParams: {
+        countries: uniqueCountries,
+        cities: uniqueCities,
+      },
     };
-
-    const cities = await this.cityModel.find({}).skip(skip).limit(limit);
-
-    return { cities, totalCities: totalCounts, searchParams };
   }
 
-  async getCity(req: any) {
-    const { skip, limit } = processPaginationParams(req);
+  // async getCity(req: any) {
+  //   const { skip, limit } = processPaginationParams(req);
 
-    const totalCounts = await this.cityModel.countDocuments();
-    const events = await this.cityModel.find({}).skip(skip).limit(limit);
+  //   console.log('this is console', req);
 
-    return { cities: events, totalCities: totalCounts };
-  }
+  //   const totalCounts = await this.cityModel.countDocuments();
+  //   const events = await this.cityModel.find({}).skip(skip).limit(limit);
 
-  async addCity(cityEvent: CityDto, file) {
+  //   return { cities: events, totalCities: totalCounts };
+  // }
+
+  async addCity(cityEvent: any, file) {
     try {
-      const { city, title, country, population, showOnHomePage } = cityEvent;
-
-      console.log('country', country, 'city', city);
+      const { city, title, country, population, showOnHomePage, isHidden } =
+        cityEvent;
 
       const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
       const addedCity = await this.cityModel.create({
         city: JSON.parse(city),
         title,
         country: JSON.parse(country),
+        imagePath,
         population,
         showOnHomePage,
-        imagePath,
+        isHidden,
       });
 
       return addedCity;
@@ -82,7 +92,7 @@ export class EventService {
     }
   }
 
-  async updateCity(cityEvent: CityDto, file: any) {
+  async updateCity(cityEvent: any, file: any) {
     const {
       _id: cityId,
       city,
@@ -90,7 +100,13 @@ export class EventService {
       country,
       population,
       showOnHomePage,
+      isHidden,
     } = cityEvent;
+
+    console.log('cityEvent', cityEvent);
+
+    console.log('isHidden', isHidden);
+    console.log('typeof isHidden', typeof isHidden);
 
     try {
       const updateCity = await this.cityModel.findById(cityId);
@@ -115,6 +131,7 @@ export class EventService {
           country: JSON.parse(country),
           population,
           showOnHomePage,
+          isHidden,
           imagePath,
         },
         { new: true },
@@ -145,14 +162,26 @@ export class EventService {
     return category;
   }
 
-  async getEventsOfCity({ cityName, req }: { cityName: string; req: any }) {
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+
+  async getEvents({ cityName, req }: { cityName: string; req: any }) {
+    const { skip, limit } = processPaginationParams(req);
+
+    console.log('getEvents');
+
     const city: any = await this.cityModel.findOne({
       'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
     });
 
     if (!city) return null;
 
-    const eventsParams = {
+    const totalEvents = city.events.length;
+    const events = city.events.slice(skip, skip + limit);
+
+    const eventsParamsForQuery = {
       dateStart: '',
       dateEnd: '',
       seatsMin: 0,
@@ -165,13 +194,70 @@ export class EventService {
       cityId: city._id,
     };
 
-    return { events: city.events, eventsParams };
+    return { events, totalEvents, eventsParams: eventsParamsForQuery };
   }
 
-  async addEvent(eventDto: EventDto, file: any) {
+  async getSingleEvent({
+    cityName,
+    eventName,
+  }: {
+    cityName: string;
+    eventName: string;
+  }) {
+    console.log(cityName, eventName);
+
+    const city: any = await this.cityModel.findOne({
+      'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
+    });
+
+    if (!city) return null;
+
+    const event = city.events.find(
+      (event: any) => event.title.toLowerCase() === eventName.toLowerCase(),
+    );
+
+    return { event };
+  }
+
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+
+  async getAllEvents(req: any) {
+    const cities = await this.cityModel.find({}).lean();
+
+    const allEvents = cities.flatMap((city) => {
+      const updatedEvents = city.events.map((event) => ({
+        ...event,
+        city: city.city,
+        country: city.country,
+      }));
+      return updatedEvents;
+    });
+
+    const filteredEvents = allEvents.filter((event) => event.showOnHomePage);
+
+    return { events: filteredEvents };
+  }
+
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  async addEvent(eventDto: any, file: any) {
     let imagePath = '';
-    const { cityId, title, description, date, seats, price, categories } =
-      eventDto;
+    const {
+      cityId,
+      title,
+      description,
+      date,
+      seats,
+      price,
+      categories,
+      showOnHomePage,
+      showInCityHome,
+    } = eventDto;
 
     const city = await this.cityModel.findById(cityId);
     if (city) {
@@ -184,8 +270,10 @@ export class EventService {
         date,
         seats,
         price,
-        categories: categories.split(','),
+        categories: JSON.parse(categories),
         imagePath,
+        showOnHomePage: JSON.parse(showOnHomePage),
+        showInCityHome: JSON.parse(showInCityHome),
       };
       city.events.push(newEvent);
       await city.save();
@@ -195,7 +283,7 @@ export class EventService {
     return { events: updatedCity.events, cityId };
   }
 
-  async updateEvent(eventDto: EventDto, file: any) {
+  async updateEvent(eventDto: any, file: any) {
     let imagePath = '';
     const {
       eventId,
@@ -206,10 +294,12 @@ export class EventService {
       seats,
       price,
       categories,
+      showOnHomePage,
+      isHidden,
+      showInCityHome,
     } = eventDto;
 
     const city = await this.cityModel.findById(cityId);
-
     if (!city) throw new Error('City not found');
 
     const foundEventIndex = city.events.findIndex((e: any) => e.id === eventId);
@@ -237,7 +327,10 @@ export class EventService {
       seats,
       imagePath,
       price,
-      categories,
+      categories: JSON.parse(categories),
+      showOnHomePage: JSON.parse(showOnHomePage),
+      isHidden: JSON.parse(isHidden),
+      showInCityHome: JSON.parse(showInCityHome),
     };
 
     city.events[foundEventIndex] = updatedEvent;
@@ -265,183 +358,3 @@ export class EventService {
     return { events: updatedCity.events, cityId };
   }
 }
-
-// async addEvent(eventDto: EventDto, file: any) {
-//     const { cityId, title, description, date, seats, price, categories } =
-//       eventDto;
-
-//     const event = await this.eventModel.findOne({ cityId: cityId });
-
-//     if (event) {
-//       const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
-
-//       await this.eventModel.updateOne(
-//         { cityId },
-//         {
-//           $push: {
-//             events: {
-//               id: uuidv4(),
-//               title,
-//               description,
-//               date,
-//               seats,
-//               price,
-//               categories: categories.split(','),
-//               imagePath,
-//             },
-//           },
-//         },
-//       );
-//     } else {
-//       const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
-
-//       await this.eventModel.create({
-//         cityId,
-//         events: [{ id: uuidv4(), title, description, date, seats, imagePath }],
-//       });
-//     }
-
-//     const events = await this.eventModel.findOne({ cityId });
-//     return events;
-//   }
-
-// async updateEvent(eventDto: EventDto, file: any) {
-//     let imagePath = '';
-//     const { eventId, cityId, title, description, date, seats } = eventDto;
-
-//     const event = await this.eventModel.findOne({ cityId: cityId });
-//     const foundEvent = event.events.find((e) => e.id === eventId);
-
-//     imagePath = foundEvent.imagePath;
-
-//     if (file && !foundEvent.imagePath) {
-//       imagePath = await this.cloudService.addFileCloud(file);
-//     }
-
-//     if (file && foundEvent.imagePath) {
-//       await this.cloudService.deleteFileCloud(foundEvent.imagePath);
-//       imagePath = await this.cloudService.addFileCloud(file);
-//     }
-
-//     const updatedEvent = await this.eventModel
-//       .findOneAndUpdate(
-//         { cityId, 'events.id': eventId },
-//         {
-//           $set: {
-//             'events.$.title': title,
-//             'events.$.description': description,
-//             'events.$.date': date,
-//             'events.$.seats': seats,
-//             'events.$.imagePath': imagePath,
-//           },
-//         },
-//         { new: true },
-//       )
-//       .exec();
-
-//     return updatedEvent;
-//   }
-
-//  async getEvent({ cityName, req }: { cityName: string; req }) {
-//     const {
-//       page,
-//       limit,
-//       searchQuery,
-//       dateStart,
-//       dataEnd,
-//       categories,
-//       seatsMin,
-//       seatsMax,
-//       priceMin,
-//       priceMax,
-//       hasFreePlaces,
-//     } = req;
-
-//     const { skip, sort } = processPaginationParams(req);
-
-//     const formattedCityName = cityName.replace(/\s+/g, '-');
-//     const regex = new RegExp(formattedCityName, 'i');
-//     const currentCity = await this.cityModel.findOne({
-//       city: { $regex: regex },
-//     });
-
-//     const cityId = currentCity._id;
-//     const events = await this.eventModel.findOne({ cityId });
-
-//     const eventsParams: any = events.events.reduce(
-//       (acc, ev, _, array) => {
-//         if (!acc.dateStart || new Date(acc.dateStart) >= new Date(ev.date))
-//           acc.dateStart = ev.date;
-//         if (!acc.dateEnd || new Date(acc.dateEnd) <= new Date(ev.date))
-//           acc.dateEnd = ev.date;
-//         if (acc.seatsMin >= ev.seats) acc.seatsMin = +ev.seats;
-//         if (acc.seatsMax <= ev.seats) acc.seatsMax = +ev.seats;
-//         if (acc.priceMin >= ev.price) acc.priceMin = +ev.price;
-//         if (acc.priceMax <= ev.price) acc.priceMax = +ev.price;
-//         acc.categories = Array.from(
-//           new Set([...acc.categories, ...(ev.categories || [])]),
-//         );
-//         acc.totalEvents = array.length;
-//         return acc;
-//       },
-//       {
-//         dateStart: '',
-//         dateEnd: '',
-//         seatsMin: 0,
-//         seatsMax: 0,
-//         priceMin: 0,
-//         priceMax: 0,
-//         categories: [],
-//         totalEvents: 0,
-//         cityName: currentCity.city,
-//         cityId: currentCity._id,
-//       },
-//     );
-
-//     const filtredEvents = events.events.filter((event) => {
-//       if (searchQuery && !event.title.includes(searchQuery)) return false;
-//       if (searchQuery && !event.description.includes(searchQuery)) return false;
-
-//       if (dateStart && new Date(dateStart) > new Date(event.date)) return false;
-//       if (dataEnd && new Date(dataEnd) < new Date(event.date)) return false;
-
-//       if (categories) {
-//         for (const cat of categories) {
-//           const newArray: string[] = Array.from(event.categories);
-//           if (!newArray.includes(cat)) return false;
-//         }
-//       }
-
-//       if (seatsMin && +seatsMin > +event.seats) return false;
-//       if (seatsMax && +seatsMax < +event.seats) return false;
-//       if (priceMin && +priceMin > +event.price) return false;
-//       if (priceMax && +priceMax < +event.price) return false;
-
-//       return true;
-//     });
-
-//     return {
-//       events: filtredEvents,
-//       filtredEvents: filtredEvents,
-//       eventsParams,
-//       city: currentCity.city,
-//     };
-//   }
-
-// async deleteEvent({ cityId, eventId }: { cityId: string; eventId: string }) {
-//   console.log('cityId', cityId, 'eventId', eventId);
-
-//   const event = await this.eventModel.findOne({ cityId: cityId });
-//   const foundEvent = event.events.find((e) => e.id === eventId);
-
-//   if (foundEvent.imagePath) {
-//     await this.cloudService.deleteFileCloud(foundEvent.imagePath);
-//   }
-
-//   const updatedDoc = await this.eventModel.findOneAndUpdate(
-//     { cityId },
-//     { $pull: { events: { id: eventId } } },
-//     { new: true },
-//   );
-//   return updatedDoc;
-// }

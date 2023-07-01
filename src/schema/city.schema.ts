@@ -20,11 +20,30 @@ export class City {
   @Prop({ default: false })
   showOnHomePage: boolean;
 
+  @Prop({ default: false })
+  isHidden: boolean;
+
   @Prop({ default: '' })
   imagePath: string;
 
   @Prop()
-  events: any[];
+  events: [
+    {
+      id?: string;
+      eventId?: string;
+      cityId: string;
+      imagePath?: string;
+      title: string;
+      description: string;
+      date: string;
+      seats: number;
+      price: number;
+      categories: string;
+      showOnHomePage: boolean;
+      isHidden: boolean;
+      showInCityHome: boolean;
+    },
+  ];
 }
 
 export const CitySchema = SchemaFactory.createForClass(City);

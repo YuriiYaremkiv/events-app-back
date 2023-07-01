@@ -16,9 +16,8 @@ export class CityDto {
   @IsString()
   readonly population: number;
 
-  @IsNotEmpty()
-  @IsString()
   readonly showOnHomePage: boolean;
+  readonly isHidden: boolean;
 
   @IsString()
   readonly imagePath?: string = '';

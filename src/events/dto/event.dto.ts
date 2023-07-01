@@ -7,4 +7,7 @@ export class EventDto {
   readonly seats: number;
   readonly price: number;
   readonly categories: string;
+  readonly showOnHomePage: boolean;
+  readonly isHidden: boolean;
+  readonly showInCityHome: boolean;
 }
