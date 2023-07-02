@@ -42,6 +42,7 @@ export class City {
       showOnHomePage: boolean;
       isHidden: boolean;
       showInCityHome: boolean;
+      singleEvent: [];
     },
   ];
 }

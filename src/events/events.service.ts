@@ -59,17 +59,6 @@ export class EventService {
     };
   }
 
-  // async getCity(req: any) {
-  //   const { skip, limit } = processPaginationParams(req);
-
-  //   console.log('this is console', req);
-
-  //   const totalCounts = await this.cityModel.countDocuments();
-  //   const events = await this.cityModel.find({}).skip(skip).limit(limit);
-
-  //   return { cities: events, totalCities: totalCounts };
-  // }
-
   async addCity(cityEvent: any, file) {
     try {
       const { city, title, country, population, showOnHomePage, isHidden } =
@@ -257,6 +246,7 @@ export class EventService {
       categories,
       showOnHomePage,
       showInCityHome,
+      speakers,
     } = eventDto;
 
     const city = await this.cityModel.findById(cityId);
@@ -274,6 +264,7 @@ export class EventService {
         imagePath,
         showOnHomePage: JSON.parse(showOnHomePage),
         showInCityHome: JSON.parse(showInCityHome),
+        speakers: JSON.parse(speakers),
       };
       city.events.push(newEvent);
       await city.save();
@@ -297,6 +288,7 @@ export class EventService {
       showOnHomePage,
       isHidden,
       showInCityHome,
+      speakers,
     } = eventDto;
 
     const city = await this.cityModel.findById(cityId);
@@ -331,6 +323,7 @@ export class EventService {
       showOnHomePage: JSON.parse(showOnHomePage),
       isHidden: JSON.parse(isHidden),
       showInCityHome: JSON.parse(showInCityHome),
+      speakers: JSON.parse(speakers),
     };
 
     city.events[foundEventIndex] = updatedEvent;
