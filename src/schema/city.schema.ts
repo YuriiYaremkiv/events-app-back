@@ -6,25 +6,22 @@ export type CityDocument = HydratedDocument<City>;
 @Schema()
 export class City {
   @Prop({ required: true, type: mongoose.Schema.Types.Mixed })
-  city: string | { label: string; population: number; country: string };
-
-  @Prop({ required: true })
-  title: string;
+  country: { name: string; label: string; phone: number };
 
   @Prop({ required: true, type: mongoose.Schema.Types.Mixed })
-  country: string | { name: string; label: string; phone: number };
+  city: { label: string; population: number; country: string };
 
-  @Prop({ required: true })
-  population: number;
+  @Prop({ default: '' })
+  description: string;
+
+  @Prop({ default: '' })
+  imagePath: string;
 
   @Prop({ default: false })
   showOnHomePage: boolean;
 
   @Prop({ default: false })
   isHidden: boolean;
-
-  @Prop({ default: '' })
-  imagePath: string;
 
   @Prop()
   events: [

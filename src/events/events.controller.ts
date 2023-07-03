@@ -17,6 +17,8 @@ import { CityDto } from './dto/city.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 
+import { CityUpdateDto } from './dto';
+
 @Controller('events')
 export class EventsController {
   constructor(private eventService: EventService) {}
@@ -43,9 +45,9 @@ export class EventsController {
   @UseInterceptors(FileInterceptor('picture'))
   updateCity(
     @UploadedFile() file: Express.Multer.File,
-    @Body() cityDto: CityDto,
+    @Body() CityUpdateDto: CityUpdateDto,
   ) {
-    return this.eventService.updateCity(cityDto, file);
+    return this.eventService.updateCity(CityUpdateDto, file);
   }
 
   @UseGuards(AccessTokenGuard)

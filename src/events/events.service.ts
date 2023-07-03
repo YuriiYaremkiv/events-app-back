@@ -1,14 +1,13 @@
-import { Length } from 'class-validator';
 import { Injectable } from '@nestjs/common';
 import { Event, EventDocument } from '../schema/event.schema';
 import { City, CityDocument } from '../schema/city.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { EventDto } from './dto/event.dto';
-import { CityDto } from './dto/city.dto';
 import { CloudService } from '../cloud/cloud.service';
 import { v4 as uuidv4 } from 'uuid';
 import { processPaginationParams } from '../config/pagination';
+
+import { CityCreateDto, CityUpdateDto } from './dto';
 
 @Injectable()
 export class EventService {
@@ -59,77 +58,61 @@ export class EventService {
     };
   }
 
-  async addCity(cityEvent: any, file) {
-    try {
-      const { city, title, country, population, showOnHomePage, isHidden } =
-        cityEvent;
+  async addCity(newCity: CityCreateDto, file: Express.Multer.File | null) {
+    const { country, city, description, showOnHomePage, isHidden } = newCity;
 
-      const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
-      const addedCity = await this.cityModel.create({
-        city: JSON.parse(city),
-        title,
-        country: JSON.parse(country),
-        imagePath,
-        population,
-        showOnHomePage,
-        isHidden,
-      });
+    const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
 
-      return addedCity;
-    } catch (err) {
-      return err;
-    }
-  }
-
-  async updateCity(cityEvent: any, file: any) {
-    const {
-      _id: cityId,
-      city,
-      title,
-      country,
-      population,
+    const createdCity = await this.cityModel.create({
+      country: JSON.parse(country),
+      city: JSON.parse(city),
+      description,
+      imagePath,
       showOnHomePage,
       isHidden,
-    } = cityEvent;
+    });
 
-    console.log('cityEvent', cityEvent);
+    return createdCity;
+  }
 
-    console.log('isHidden', isHidden);
-    console.log('typeof isHidden', typeof isHidden);
+  async updateCity(
+    updateCity: CityUpdateDto,
+    file: Express.Multer.File | null,
+  ) {
+    const {
+      _id: cityId,
+      country,
+      city,
+      description,
+      showOnHomePage,
+      isHidden,
+    } = updateCity;
 
-    try {
-      const updateCity = await this.cityModel.findById(cityId);
+    const currentCity = await this.cityModel.findById(cityId);
 
-      if (!updateCity) {
-        throw new Error(`City with ID ${cityId} not found`);
-      }
+    if (!currentCity) throw new Error(`City with ID ${cityId} not found`);
 
-      if (file && updateCity.imagePath) {
-        await this.cloudService.deleteFileCloud(updateCity.imagePath);
-      }
+    if (file && currentCity.imagePath)
+      await this.cloudService.deleteFileCloud(currentCity.imagePath);
 
-      const imagePath = file
-        ? await this.cloudService.addFileCloud(file)
-        : updateCity.imagePath;
+    const imagePath = file
+      ? await this.cloudService.addFileCloud(file)
+      : currentCity.imagePath;
 
-      const updatedCity = await this.cityModel.findOneAndUpdate(
-        { _id: cityId },
-        {
-          city: JSON.parse(city),
-          title,
-          country: JSON.parse(country),
-          population,
-          showOnHomePage,
-          isHidden,
-          imagePath,
-        },
-        { new: true },
-      );
+    const updatedCity = await this.cityModel.findByIdAndUpdate(
+      cityId,
+      {
+        country: JSON.parse(country),
+        city: JSON.parse(city),
+        description,
+        imagePath,
+        showOnHomePage: JSON.parse(showOnHomePage),
+        isHidden: JSON.parse(isHidden),
+      },
+      { new: true },
+    );
 
-      return updatedCity;
-    } catch (err) {
-      return err.message;
-    }
+    return updatedCity;
   }
 
   async deleteCity(cityId: string) {
