@@ -9,6 +9,12 @@ import { processPaginationParams } from '../config/pagination';
 
 import { CityCreateDto, CityUpdateDto } from './dto';
 
+interface IAddCityProps {
+  req: any;
+  newCity: CityCreateDto;
+  file: Express.Multer.File | null;
+}
+
 @Injectable()
 export class EventService {
   constructor(
@@ -58,21 +64,22 @@ export class EventService {
     };
   }
 
-  async addCity(newCity: CityCreateDto, file: Express.Multer.File | null) {
+  async addCity({ req, newCity, file }: IAddCityProps) {
     const { country, city, description, showOnHomePage, isHidden } = newCity;
 
     const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
 
-    const createdCity = await this.cityModel.create({
+    await this.cityModel.create({
       country: JSON.parse(country),
       city: JSON.parse(city),
       description,
       imagePath,
-      showOnHomePage,
-      isHidden,
+      showOnHomePage: JSON.parse(showOnHomePage),
+      isHidden: JSON.parse(isHidden),
     });
 
-    return createdCity;
+    const data = await this.getCities(req);
+    return data;
   }
 
   async updateCity(
@@ -115,7 +122,7 @@ export class EventService {
     return updatedCity;
   }
 
-  async deleteCity(cityId: string) {
+  async deleteCity({ req, cityId }: any) {
     const city = await this.cityModel.findById(cityId);
 
     if (city.imagePath) {
@@ -126,23 +133,15 @@ export class EventService {
     if (deletedCity.deletedCount === 0) {
       throw new Error(`City with ID ${cityId} not found`);
     }
-    return cityId;
+
+    const data = await this.getCities(req);
+    return data;
   }
 
-  async getAllCategories() {
-    const category = await this.eventModel.find();
-    return category;
-  }
-
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
   // -----------------------------------------------------------------------------------------------------------------------------
 
   async getEvents({ cityName, req }: { cityName: string; req: any }) {
     const { skip, limit } = processPaginationParams(req);
-
-    console.log('getEvents');
 
     const city: any = await this.cityModel.findOne({
       'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
@@ -169,56 +168,9 @@ export class EventService {
     return { events, totalEvents, eventsParams: eventsParamsForQuery };
   }
 
-  async getSingleEvent({
-    cityName,
-    eventName,
-  }: {
-    cityName: string;
-    eventName: string;
-  }) {
-    console.log(cityName, eventName);
-
-    const city: any = await this.cityModel.findOne({
-      'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
-    });
-
-    if (!city) return null;
-
-    const event = city.events.find(
-      (event: any) => event.title.toLowerCase() === eventName.toLowerCase(),
-    );
-
-    return { event };
-  }
-
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-
-  async getAllEvents(req: any) {
-    const cities = await this.cityModel.find({}).lean();
-
-    const allEvents = cities.flatMap((city) => {
-      const updatedEvents = city.events.map((event) => ({
-        ...event,
-        city: city.city,
-        country: city.country,
-      }));
-      return updatedEvents;
-    });
-
-    const filteredEvents = allEvents.filter((event) => event.showOnHomePage);
-
-    return { events: filteredEvents };
-  }
-
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
   async addEvent(eventDto: any, file: any) {
     let imagePath = '';
+
     const {
       cityId,
       title,
@@ -332,5 +284,49 @@ export class EventService {
 
     const updatedCity = await this.cityModel.findById(cityId);
     return { events: updatedCity.events, cityId };
+  }
+
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------------------------------------
+
+  async getSingleEvent({
+    cityName,
+    eventName,
+  }: {
+    cityName: string;
+    eventName: string;
+  }) {
+    console.log(cityName, eventName);
+
+    const city: any = await this.cityModel.findOne({
+      'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
+    });
+
+    if (!city) return null;
+
+    const event = city.events.find(
+      (event: any) => event.title.toLowerCase() === eventName.toLowerCase(),
+    );
+
+    return { event };
+  }
+
+  async getAllEvents(req: any) {
+    const cities = await this.cityModel.find({}).lean();
+
+    const allEvents = cities.flatMap((city) => {
+      const updatedEvents = city.events.map((event) => ({
+        ...event,
+        city: city.city,
+        country: city.country,
+      }));
+      return updatedEvents;
+    });
+
+    const filteredEvents = allEvents.filter((event) => event.showOnHomePage);
+
+    return { events: filteredEvents };
   }
 }

@@ -13,11 +13,10 @@ import {
 } from '@nestjs/common';
 import { EventService } from './events.service';
 import { EventDto } from './dto/event.dto';
-import { CityDto } from './dto/city.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 
-import { CityUpdateDto } from './dto';
+import { CityUpdateDto, CityCreateDto } from './dto';
 
 @Controller('events')
 export class EventsController {
@@ -36,8 +35,12 @@ export class EventsController {
   @UseGuards(AccessTokenGuard)
   @Post('city')
   @UseInterceptors(FileInterceptor('picture'))
-  addCity(@UploadedFile() file: Express.Multer.File, @Body() cityDto: CityDto) {
-    return this.eventService.addCity(cityDto, file);
+  addCity(
+    @Query() req: Request,
+    @Body() newCity: CityCreateDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.eventService.addCity({ req, newCity, file });
   }
 
   @UseGuards(AccessTokenGuard)
@@ -52,8 +55,8 @@ export class EventsController {
 
   @UseGuards(AccessTokenGuard)
   @Delete('city/:cityId')
-  deleteCity(@Param('cityId') cityId: string) {
-    return this.eventService.deleteCity(cityId);
+  deleteCity(@Query() req: Request, @Param('cityId') cityId: string) {
+    return this.eventService.deleteCity({ req, cityId });
   }
 
   @Get('event/:cityName')
