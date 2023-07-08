@@ -1,4 +1,5 @@
 export class EventDto {
+  readonly id?: string;
   readonly eventId?: string;
   readonly cityId: string;
   readonly title: string;
@@ -7,7 +8,9 @@ export class EventDto {
   readonly seats: number;
   readonly price: number;
   readonly categories: string;
-  readonly showOnHomePage: boolean;
-  readonly isHidden: boolean;
-  readonly showInCityHome: boolean;
+  readonly imagePath?: string;
+  readonly speakers: any;
+  readonly showOnHomePage: string;
+  readonly isHidden: string;
+  readonly showInCityHome: string;
 }

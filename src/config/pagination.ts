@@ -1,7 +1,7 @@
 interface PaginationParams {
   page: number;
   limit: number;
-  sort: string;
+  sort?: string;
 }
 
 interface ProcessedPaginationParams {

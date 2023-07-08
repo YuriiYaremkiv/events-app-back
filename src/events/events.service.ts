@@ -1,273 +1,111 @@
 import { Injectable } from '@nestjs/common';
-import { Event, EventDocument } from '../schema/event.schema';
 import { City, CityDocument } from '../schema/city.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CloudService } from '../cloud/cloud.service';
 import { v4 as uuidv4 } from 'uuid';
 import { processPaginationParams } from '../config/pagination';
+import { RequestEventDto } from './dto';
+import { EventDto } from './dto/event.dto';
 
-import { CityCreateDto, CityUpdateDto } from './dto';
+interface IGetEvent {
+  reqEvent: RequestEventDto;
+  cityName?: string;
+  eventName?: string;
+}
 
-interface IAddCityProps {
-  req: any;
-  newCity: CityCreateDto;
+interface IAddEvent {
+  reqEvent: RequestEventDto;
+  newEvent: EventDto;
   file: Express.Multer.File | null;
+}
+
+interface IUpdateEvent {
+  updatedEvent: EventDto;
+  file: Express.Multer.File | null;
+}
+
+interface IDeleteEvent {
+  reqEvent: RequestEventDto;
+  cityId: string;
+  eventId: string;
 }
 
 @Injectable()
 export class EventService {
   constructor(
-    @InjectModel(Event.name) private eventModel: Model<EventDocument>,
     @InjectModel(City.name) private cityModel: Model<CityDocument>,
     private readonly cloudService: CloudService,
   ) {}
 
-  async getCities(req: any) {
-    const { skip, limit } = processPaginationParams(req);
-    const { cities, countries, showOnHomePage, isHidden, showInCityHome } = req;
-
-    const query = {};
-    if (!isHidden) query['isHidden'] = false;
-    if (showOnHomePage) query['showOnHomePage'] = showOnHomePage;
-    if (countries) query['country.label'] = { $in: countries.split(',') };
-    if (cities) query['city.label'] = { $in: cities.split(',') };
-
-    const [totalCities, allCities] = await Promise.all([
-      this.cityModel.countDocuments(),
-      this.cityModel.find(query).skip(skip).limit(limit).lean(),
-    ]);
-
-    allCities.forEach((city: any) => {
-      city.totalEvents = city.events.length;
-      if (showInCityHome) {
-        city.events = city.events.filter(
-          (event: any) => event.showInCityHome && !event.isHidden,
-        );
-      } else {
-        city.events = [];
-      }
-
-      return city;
+  async getEvent({ reqEvent, cityName, eventName }: IGetEvent) {
+    const response = await this.getEventOfDatabase({
+      reqEvent,
+      cityName,
+      eventName,
     });
 
-    const uniqueCountries = [...new Set(allCities.map((city) => city.country))];
-    const uniqueCities = [...new Set(allCities.map((city) => city.city))];
-
-    return {
-      cities: allCities,
-      totalCities,
-      searchParams: {
-        countries: uniqueCountries,
-        cities: uniqueCities,
-      },
-    };
+    return response;
   }
 
-  async addCity({ req, newCity, file }: IAddCityProps) {
-    const { country, city, description, showOnHomePage, isHidden } = newCity;
+  async addEvent({ reqEvent, newEvent, file }: IAddEvent) {
+    const { cityId } = newEvent;
 
+    const city = await this.cityModel.findById(cityId);
+    if (!city) throw new Error(`City not found`);
+
+    const eventObject = this.createEventObject(newEvent);
     const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
 
-    await this.cityModel.create({
-      country: JSON.parse(country),
-      city: JSON.parse(city),
-      description,
-      imagePath,
-      showOnHomePage: JSON.parse(showOnHomePage),
-      isHidden: JSON.parse(isHidden),
-    });
+    const id = uuidv4();
+    city.events.push({ id: id, ...eventObject, imagePath });
+    await city.save();
 
-    const data = await this.getCities(req);
-    return data;
-  }
-
-  async updateCity(
-    updateCity: CityUpdateDto,
-    file: Express.Multer.File | null,
-  ) {
-    const {
-      _id: cityId,
-      country,
-      city,
-      description,
-      showOnHomePage,
-      isHidden,
-    } = updateCity;
-
-    const currentCity = await this.cityModel.findById(cityId);
-
-    if (!currentCity) throw new Error(`City with ID ${cityId} not found`);
-
-    if (file && currentCity.imagePath)
-      await this.cloudService.deleteFileCloud(currentCity.imagePath);
-
-    const imagePath = file
-      ? await this.cloudService.addFileCloud(file)
-      : currentCity.imagePath;
-
-    const updatedCity = await this.cityModel.findByIdAndUpdate(
-      cityId,
-      {
-        country: JSON.parse(country),
-        city: JSON.parse(city),
-        description,
-        imagePath,
-        showOnHomePage: JSON.parse(showOnHomePage),
-        isHidden: JSON.parse(isHidden),
-      },
-      { new: true },
-    );
-
-    return updatedCity;
-  }
-
-  async deleteCity({ req, cityId }: any) {
-    const city = await this.cityModel.findById(cityId);
-
-    if (city.imagePath) {
-      await this.cloudService.deleteFileCloud(city.imagePath);
-    }
-
-    const deletedCity = await this.cityModel.deleteOne({ _id: cityId });
-    if (deletedCity.deletedCount === 0) {
-      throw new Error(`City with ID ${cityId} not found`);
-    }
-
-    const data = await this.getCities(req);
-    return data;
-  }
-
-  // -----------------------------------------------------------------------------------------------------------------------------
-
-  async getEvents({ cityName, req }: { cityName: string; req: any }) {
-    const { skip, limit } = processPaginationParams(req);
-
-    const city: any = await this.cityModel.findOne({
-      'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
-    });
-
-    if (!city) return null;
-
-    const totalEvents = city.events.length;
-    const events = city.events.slice(skip, skip + limit);
-
-    const eventsParamsForQuery = {
-      dateStart: '',
-      dateEnd: '',
-      seatsMin: 0,
-      seatsMax: 0,
-      priceMin: 0,
-      priceMax: 0,
-      categories: [],
-      totalEvents: 0,
+    const response = await this.getEventOfDatabase({
+      reqEvent,
       cityName: city.city.label,
-      cityId: city._id,
-    };
-
-    return { events, totalEvents, eventsParams: eventsParamsForQuery };
+    });
+    return { ...response, cityId: city._id };
   }
 
-  async addEvent(eventDto: any, file: any) {
-    let imagePath = '';
-
-    const {
-      cityId,
-      title,
-      description,
-      date,
-      seats,
-      price,
-      categories,
-      showOnHomePage,
-      showInCityHome,
-      speakers,
-    } = eventDto;
+  async updateEvent({ updatedEvent, file }: IUpdateEvent) {
+    const { cityId, eventId } = updatedEvent;
 
     const city = await this.cityModel.findById(cityId);
-    if (city) {
-      imagePath = file ? await this.cloudService.addFileCloud(file) : '';
-
-      const newEvent: any = {
-        id: uuidv4(),
-        title,
-        description,
-        date,
-        seats,
-        price,
-        categories: JSON.parse(categories),
-        imagePath,
-        showOnHomePage: JSON.parse(showOnHomePage),
-        showInCityHome: JSON.parse(showInCityHome),
-        speakers: JSON.parse(speakers),
-      };
-      city.events.push(newEvent);
-      await city.save();
+    if (!city) {
+      throw new Error(`City not found`);
     }
 
-    const updatedCity = await this.cityModel.findById(cityId);
-    return { events: updatedCity.events, cityId };
-  }
-
-  async updateEvent(eventDto: any, file: any) {
-    let imagePath = '';
-    const {
-      eventId,
-      cityId,
-      title,
-      description,
-      date,
-      seats,
-      price,
-      categories,
-      showOnHomePage,
-      isHidden,
-      showInCityHome,
-      speakers,
-    } = eventDto;
-
-    const city = await this.cityModel.findById(cityId);
-    if (!city) throw new Error('City not found');
-
-    const foundEventIndex = city.events.findIndex((e: any) => e.id === eventId);
-    if (foundEventIndex === -1) {
+    const eventIndex = city.events.findIndex(
+      (event: any) => event.id === eventId,
+    );
+    if (eventIndex === -1) {
       throw new Error('Event not found');
     }
 
-    const foundEvent = city.events[foundEventIndex];
-    imagePath = foundEvent.imagePath;
+    const foundEvent = city.events[eventIndex];
+    let imagePath = foundEvent.imagePath;
 
     if (file && !foundEvent.imagePath) {
       imagePath = await this.cloudService.addFileCloud(file);
-    }
-
-    if (file && foundEvent.imagePath) {
+    } else if (file && foundEvent.imagePath) {
       await this.cloudService.deleteFileCloud(foundEvent.imagePath);
       imagePath = await this.cloudService.addFileCloud(file);
     }
 
-    const updatedEvent = {
-      ...foundEvent,
-      title,
-      description,
-      date,
-      seats,
-      imagePath,
-      price,
-      categories: JSON.parse(categories),
-      showOnHomePage: JSON.parse(showOnHomePage),
-      isHidden: JSON.parse(isHidden),
-      showInCityHome: JSON.parse(showInCityHome),
-      speakers: JSON.parse(speakers),
+    const updatedEventObject = {
+      ...this.createEventObject(updatedEvent),
+      imagePath: imagePath || foundEvent.imagePath,
+      id: eventId,
     };
 
-    city.events[foundEventIndex] = updatedEvent;
+    city.events[eventIndex] = updatedEventObject;
     await city.save();
 
-    return { updatedEvent, cityId };
+    return { updatedEvent: updatedEventObject, cityId };
   }
 
-  async deleteEvent({ cityId, eventId }: { cityId: string; eventId: string }) {
+  async deleteEvent({ reqEvent, cityId, eventId }: IDeleteEvent) {
     const city = await this.cityModel.findById(cityId);
     const foundEventIndex = city.events.findIndex((e) => e.id === eventId);
 
@@ -282,23 +120,78 @@ export class EventService {
       await city.save();
     }
 
-    const updatedCity = await this.cityModel.findById(cityId);
-    return { events: updatedCity.events, cityId };
+    const response = await this.getEventOfDatabase({
+      reqEvent,
+      cityName: city.city.label,
+    });
+    return response;
   }
 
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
-  // -----------------------------------------------------------------------------------------------------------------------------
+  createEventObject(eventDto: EventDto) {
+    const {
+      title,
+      description,
+      date,
+      seats,
+      price,
+      imagePath,
+      categories,
+      showOnHomePage,
+      showInCityHome,
+      speakers,
+    } = eventDto;
 
-  async getSingleEvent({
-    cityName,
-    eventName,
-  }: {
-    cityName: string;
-    eventName: string;
-  }) {
-    console.log(cityName, eventName);
+    const newEvent: any = {
+      title,
+      description,
+      date,
+      seats,
+      price,
+      categories: JSON.parse(categories),
+      showOnHomePage: JSON.parse(showOnHomePage),
+      showInCityHome: JSON.parse(showInCityHome),
+      speakers: JSON.parse(speakers),
+    };
+
+    if (imagePath) {
+      newEvent.imagePath = newEvent;
+    }
+
+    return newEvent;
+  }
+
+  async getEventOfDatabase({ reqEvent, cityName, eventName }: IGetEvent) {
+    const { skip, limit } = processPaginationParams(reqEvent);
+
+    if (cityName && eventName) {
+      const city: any = await this.cityModel.findOne({
+        'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
+      });
+      if (!city) return null;
+      const event = city.events.find(
+        (event: any) => event.title.toLowerCase() === eventName.toLowerCase(),
+      );
+      return { event };
+    }
+
+    if (!cityName) {
+      const cities = await this.cityModel.find({}).lean();
+
+      const allEvents = cities.flatMap((city) => {
+        const updatedEvents = city.events.map((event) => ({
+          ...event,
+          city: city.city,
+          country: city.country,
+        }));
+        return updatedEvents;
+      });
+
+      const filteredEvents = allEvents.filter((event) => event.showOnHomePage);
+
+      return { events: filteredEvents };
+    }
+
+    // Get Event To Events For One City:
 
     const city: any = await this.cityModel.findOne({
       'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
@@ -306,27 +199,39 @@ export class EventService {
 
     if (!city) return null;
 
-    const event = city.events.find(
-      (event: any) => event.title.toLowerCase() === eventName.toLowerCase(),
-    );
+    const totalEvents = city.events.length;
+    const events = city.events.slice(skip, skip + limit);
 
-    return { event };
+    const eventsParamsForQuery = this.getSearchParamsOfCity({ city });
+
+    return { events, totalEvents, searchParams: eventsParamsForQuery };
   }
 
-  async getAllEvents(req: any) {
-    const cities = await this.cityModel.find({}).lean();
+  getSearchParamsOfCity({ city }: any) {
+    const seatsMin = 0;
+    const priceMin = 0;
+    let seatsMax = 0;
+    let priceMax = 0;
+    const categories = [];
 
-    const allEvents = cities.flatMap((city) => {
-      const updatedEvents = city.events.map((event) => ({
-        ...event,
-        city: city.city,
-        country: city.country,
-      }));
-      return updatedEvents;
+    city.events.forEach((event: any) => {
+      if (seatsMax < event.seats) seatsMax = Number(event.seats);
+      if (priceMax < event.price) priceMax = Number(event.seats);
+      categories.push(...event.categories);
     });
 
-    const filteredEvents = allEvents.filter((event) => event.showOnHomePage);
+    const uniqueCategories = categories.filter((category, index: number) => {
+      return !categories.some(
+        (c, i) => c.label === category.label && i < index,
+      );
+    });
 
-    return { events: filteredEvents };
+    return {
+      seatsMin,
+      seatsMax,
+      priceMin,
+      priceMax,
+      categories: uniqueCategories,
+    };
   }
 }

@@ -15,100 +15,62 @@ import { EventService } from './events.service';
 import { EventDto } from './dto/event.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AccessTokenGuard } from '../common/guards/accessToken.guard';
+import { RequestEventDto } from './dto';
 
-import { CityUpdateDto, CityCreateDto } from './dto';
-
-@Controller('events')
+@Controller('event')
 export class EventsController {
   constructor(private eventService: EventService) {}
 
-  @Get('cities/list')
-  getCities(@Query() req: Request) {
-    return this.eventService.getCities(req);
-  }
-
-  @Get('city')
-  getCity(@Query() req: Request) {
-    return this.eventService.getCities(req);
-  }
-
-  @UseGuards(AccessTokenGuard)
-  @Post('city')
-  @UseInterceptors(FileInterceptor('picture'))
-  addCity(
-    @Query() req: Request,
-    @Body() newCity: CityCreateDto,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    return this.eventService.addCity({ req, newCity, file });
-  }
-
-  @UseGuards(AccessTokenGuard)
-  @Patch('city')
-  @UseInterceptors(FileInterceptor('picture'))
-  updateCity(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() CityUpdateDto: CityUpdateDto,
-  ) {
-    return this.eventService.updateCity(CityUpdateDto, file);
-  }
-
-  @UseGuards(AccessTokenGuard)
-  @Delete('city/:cityId')
-  deleteCity(@Query() req: Request, @Param('cityId') cityId: string) {
-    return this.eventService.deleteCity({ req, cityId });
-  }
-
-  @Get('event/:cityName')
-  getEvents(@Param('cityName') cityName: string, @Query() req: Request) {
-    return this.eventService.getEvents({ cityName, req });
-  }
-
-  @Get('events')
-  getAllEvents(@Query() req: Request) {
-    return this.eventService.getAllEvents(req);
-  }
-
-  @Get('event/:cityName/:eventName')
+  @Get(':cityName/:eventName')
   getSingleEvent(
+    @Query() reqEvent: RequestEventDto,
     @Param('cityName') cityName: string,
     @Param('eventName') eventName: string,
   ) {
-    return this.eventService.getSingleEvent({ cityName, eventName });
+    return this.eventService.getEvent({ reqEvent, cityName, eventName });
   }
 
-  // @Get('event/:cityName')
-  // getEvent(@Param('cityName') cityName: string, @Query() req: Request) {
-  //   return this.eventService.getEvent({ cityName, req });
-  // }
+  @Get(':cityName')
+  getEvent(
+    @Query() reqEvent: RequestEventDto,
+    @Param('cityName') cityName: string,
+  ) {
+    return this.eventService.getEvent({ reqEvent, cityName });
+  }
 
-  // New block code
+  @Get()
+  getAllEvent(@Query() reqEvent: RequestEventDto) {
+    return this.eventService.getEvent({ reqEvent });
+  }
+
   @UseGuards(AccessTokenGuard)
-  @Post('event')
+  @Post()
   @UseInterceptors(FileInterceptor('picture'))
   addEvent(
+    @Query() reqEvent: RequestEventDto,
+    @Body() newEvent: EventDto,
     @UploadedFile() file: Express.Multer.File,
-    @Body() eventDto: EventDto,
   ) {
-    return this.eventService.addEvent(eventDto, file);
+    return this.eventService.addEvent({ reqEvent, newEvent, file });
   }
 
   @UseGuards(AccessTokenGuard)
-  @Patch('event')
+  @Patch()
   @UseInterceptors(FileInterceptor('picture'))
   updateEvent(
+    @Body() updatedEvent: EventDto,
     @UploadedFile() file: Express.Multer.File,
-    @Body() eventDto: EventDto,
   ) {
-    return this.eventService.updateEvent(eventDto, file);
+    return this.eventService.updateEvent({ updatedEvent, file });
   }
 
   @UseGuards(AccessTokenGuard)
-  @Delete('event/:cityId/:eventId')
+  @Delete(':cityId/:eventId')
   deleteEvent(
     @Param('cityId') cityId: string,
     @Param('eventId') eventId: string,
+    @Query() reqEvent: RequestEventDto,
   ) {
-    return this.eventService.deleteEvent({ cityId, eventId });
+    return this.eventService.deleteEvent({ reqEvent, cityId, eventId });
   }
 }
