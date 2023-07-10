@@ -176,7 +176,6 @@ export class EventService {
 
     if (!cityName) {
       const cities = await this.cityModel.find({}).lean();
-
       const allEvents = cities.flatMap((city) => {
         const updatedEvents = city.events.map((event) => ({
           ...event,
@@ -187,24 +186,83 @@ export class EventService {
       });
 
       const filteredEvents = allEvents.filter((event) => event.showOnHomePage);
-
       return { events: filteredEvents };
     }
-
-    // Get Event To Events For One City:
 
     const city: any = await this.cityModel.findOne({
       'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
     });
 
-    if (!city) return null;
+    if (!city) {
+      return null;
+    }
 
-    const totalEvents = city.events.length;
-    const events = city.events.slice(skip, skip + limit);
+    const filteredEvents = this.getFilteredEvents({
+      reqEvent,
+      events: city.events,
+    });
+
+    const totalEvents = filteredEvents.length;
+    const events = filteredEvents.slice(skip, skip + limit);
 
     const eventsParamsForQuery = this.getSearchParamsOfCity({ city });
 
-    return { events, totalEvents, searchParams: eventsParamsForQuery };
+    return {
+      events,
+      totalEvents,
+      searchParams: eventsParamsForQuery,
+      filteredEvents,
+    };
+  }
+
+  getFilteredEvents({ reqEvent, events }: any) {
+    const {
+      query,
+      dateStart,
+      dateEnd,
+      priceMin,
+      priceMax,
+      seatsMin,
+      seatsMax,
+      categories,
+    } = reqEvent;
+
+    const filteredEvents = events.filter((event: any) => {
+      if (query) {
+        if (
+          event.title.toLowerCase().includes(query.toLowerCase()) ||
+          event.description.toLowerCase().includes(query.toLowerCase())
+        ) {
+          return true;
+        }
+        return false;
+      }
+
+      if (new Date(dateStart) >= new Date(event.date)) return false;
+      if (new Date(dateEnd) >= new Date(event.date)) return false;
+
+      if (priceMin >= event.price) return false;
+      if (priceMax <= event.price) return false;
+
+      if (seatsMin >= event.seats) return false;
+      if (seatsMax <= event.seats) return false;
+
+      if (categories) {
+        const allCategoriesEvent = event.categories.map(
+          (cat: any) => cat.label,
+        );
+        const allcat = categories.split(',');
+
+        for (const cat of allcat) {
+          if (allCategoriesEvent.includes(cat)) return true;
+        }
+        return false;
+      }
+
+      return true;
+    });
+
+    return filteredEvents;
   }
 
   getSearchParamsOfCity({ city }: any) {
