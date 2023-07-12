@@ -171,7 +171,7 @@ export class EventService {
       const event = city.events.find(
         (event: any) => event.title.toLowerCase() === eventName.toLowerCase(),
       );
-      return { event };
+      return { events: event };
     }
 
     if (!cityName) {
@@ -211,7 +211,7 @@ export class EventService {
       events,
       totalEvents,
       searchParams: eventsParamsForQuery,
-      filteredEvents,
+      cityId: city._id,
     };
   }
 

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { CloudService } from '../cloud/cloud.service';
 import { City, CityDocument } from '../schema/city.schema';
-import { Model } from 'mongoose';
 import { CityCreateDto, CityUpdateDto, RequestCityDto } from './dto';
 import { processPaginationParams } from '../config/pagination';
-import { ICityItem, IEventItem } from 'interfaces';
+import { ICityItem, IEventItem } from '../interfaces';
 
 interface IAddCityProps {
   reqCity: RequestCityDto;
