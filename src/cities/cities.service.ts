@@ -3,25 +3,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CloudService } from '../cloud/cloud.service';
 import { City, CityDocument } from '../schema/city.schema';
-import { CityCreateDto, CityUpdateDto, RequestCityDto } from './dto';
+import { CityDto, RequestCityDto } from './dto';
 import { processPaginationParams } from '../config/pagination';
-import { ICityItem, IEventItem } from '../interfaces';
-
-interface IAddCityProps {
-  reqCity: RequestCityDto;
-  newCity: CityCreateDto;
-  file: Express.Multer.File | null;
-}
-
-interface IUpdateCityProps {
-  updatedCity: CityUpdateDto;
-  file: Express.Multer.File | null;
-}
-
-interface IDeleteCityProps {
-  reqCity: RequestCityDto;
-  cityId: string;
-}
+import { ICityItem, IEventItem, CityDataResponse } from '../interfaces';
 
 @Injectable()
 export class CitiesService {
@@ -30,51 +14,67 @@ export class CitiesService {
     private readonly cloudService: CloudService,
   ) {}
 
-  async getCity({ reqCity }: { reqCity: RequestCityDto }) {
+  async getCity(reqCity: RequestCityDto): Promise<CityDataResponse> {
     const response = await this.getCityOfDatabase(reqCity);
     return response;
   }
 
-  async addCity({ reqCity, newCity, file }: IAddCityProps) {
-    const cityObject = this.createCityObject(newCity);
+  async addCity({
+    reqCity,
+    newCity,
+    file,
+  }: {
+    reqCity: RequestCityDto;
+    newCity: CityDto;
+    file?: Express.Multer.File;
+  }): Promise<CityDataResponse> {
+    let imagePath = '';
+    if (file) imagePath = await this.cloudService.addFileCloud(file);
 
-    if (file) {
-      const imagePath = await this.cloudService.addFileCloud(file);
-      cityObject.imagePath = imagePath;
-    }
-    await this.cityModel.create(cityObject);
+    await this.cityModel.create({ ...newCity, imagePath });
 
     const response = await this.getCityOfDatabase(reqCity);
     return response;
   }
 
-  async updateCity({ updatedCity, file }: IUpdateCityProps) {
-    const cityObject = this.createCityObject(updatedCity);
-    const { _id: cityId, imagePath: currentImage } = updatedCity;
+  async updateCity({
+    updatedCity,
+    file,
+  }: {
+    updatedCity: CityDto;
+    file?: Express.Multer.File;
+  }): Promise<ICityItem> {
+    const { _id: cityId } = updatedCity;
 
-    const currentCity = await this.cityModel.findById(cityId);
+    const currentCity = await this.cityModel.findById(cityId)?.lean();
+    if (!currentCity) throw new Error(`City not found`);
 
-    if (!currentCity) {
-      throw new Error(`City not found`);
-    }
-
-    let imagePath = currentImage;
+    let imagePath = currentCity.imagePath;
     if (file) {
-      if (currentImage) await this.cloudService.deleteFileCloud(currentImage);
+      if (imagePath) await this.cloudService.deleteFileCloud(imagePath);
       imagePath = await this.cloudService.addFileCloud(file);
     }
 
-    const updatedCityData = await this.cityModel.findByIdAndUpdate(
-      cityId,
-      { ...cityObject, imagePath },
-      { new: true },
-    );
+    const updatedCityData: ICityItem = await this.cityModel
+      .findByIdAndUpdate(cityId, { ...updatedCity, imagePath }, { new: true })
+      .select('-__v')
+      .lean();
+
+    updatedCityData.totalEvents = updatedCityData.events.length;
+    updatedCityData.events = [];
 
     return updatedCityData;
   }
 
-  async deleteCity({ reqCity, cityId }: IDeleteCityProps) {
+  async deleteCity({
+    reqCity,
+    cityId,
+  }: {
+    reqCity: RequestCityDto;
+    cityId: string;
+  }): Promise<CityDataResponse> {
     const city = await this.cityModel.findById(cityId);
+    if (!city) throw new Error(`City not found`);
 
     if (city.imagePath) {
       await this.cloudService.deleteFileCloud(city.imagePath);
@@ -89,26 +89,7 @@ export class CitiesService {
     return response;
   }
 
-  createCityObject(cityDto: CityCreateDto) {
-    const { country, city, description, imagePath, showOnHomePage, isHidden } =
-      cityDto;
-
-    const newCity: any = {
-      country: JSON.parse(country),
-      city: JSON.parse(city),
-      description: description,
-      showOnHomePage: JSON.parse(showOnHomePage) || false,
-      isHidden: JSON.parse(isHidden) || false,
-    };
-
-    if (imagePath) {
-      newCity.imagePath = newCity;
-    }
-
-    return newCity;
-  }
-
-  async getCityOfDatabase(req: RequestCityDto) {
+  async getCityOfDatabase(req: RequestCityDto): Promise<CityDataResponse> {
     const { skip, limit } = processPaginationParams(req);
     const { cities, countries, showOnHomePage, isHidden } = req;
 
@@ -135,16 +116,22 @@ export class CitiesService {
     allCities.forEach((city: any) => {
       city.totalEvents = city.events.length;
 
-      city.events = city.events.reduce((acc: any, event: IEventItem) => {
-        if (event.showInCityHome) {
-          acc.push({
-            title: event.title,
-            date: event.date,
-            imagePath: event.imagePath,
-          });
-        }
-        return acc;
-      }, []);
+      city.events = city.events.reduce(
+        (
+          acc: { title: string; date: string; imagePath: string }[],
+          event: IEventItem,
+        ) => {
+          if (event.showInCityHome) {
+            acc.push({
+              title: event.title,
+              date: event.date,
+              imagePath: event.imagePath,
+            });
+          }
+          return acc;
+        },
+        [],
+      );
 
       return city;
     });

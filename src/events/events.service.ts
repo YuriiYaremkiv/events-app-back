@@ -7,12 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { processPaginationParams } from '../config/pagination';
 import { RequestEventDto } from './dto';
 import { EventDto } from './dto/event.dto';
-
-interface IGetEvent {
-  reqEvent: RequestEventDto;
-  cityName?: string;
-  eventName?: string;
-}
+import { EventDataResponse, IEventItem } from '../interfaces';
 
 interface IAddEvent {
   reqEvent: RequestEventDto;
@@ -38,7 +33,15 @@ export class EventService {
     private readonly cloudService: CloudService,
   ) {}
 
-  async getEvent({ reqEvent, cityName, eventName }: IGetEvent) {
+  async getEvent({
+    reqEvent,
+    cityName,
+    eventName,
+  }: {
+    reqEvent: RequestEventDto;
+    cityName?: string;
+    eventName?: string;
+  }): Promise<any> {
     const response = await this.getEventOfDatabase({
       reqEvent,
       cityName,
@@ -48,81 +51,100 @@ export class EventService {
     return response;
   }
 
-  async addEvent({ reqEvent, newEvent, file }: IAddEvent) {
-    const { cityId } = newEvent;
+  async addEvent({
+    reqEvent,
+    newEvent,
+    file,
+  }: {
+    reqEvent: RequestEventDto;
+    newEvent: EventDto;
+    file?: Express.Multer.File;
+  }): Promise<EventDataResponse> {
+    const { cityId, ...bodyNewEvent } = newEvent;
 
-    const city = await this.cityModel.findById(cityId);
-    if (!city) throw new Error(`City not found`);
+    const currentCity = await this.cityModel.findById(cityId).lean();
+    if (!currentCity) throw new Error(`City not found`);
 
-    const eventObject = this.createEventObject(newEvent);
     const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
 
     const id = uuidv4();
-    city.events.push({ id: id, ...eventObject, imagePath });
-    await city.save();
+    currentCity.events.push({ id, ...bodyNewEvent, imagePath });
+    await currentCity.save();
 
     const response = await this.getEventOfDatabase({
       reqEvent,
-      cityName: city.city.label,
+      cityName: currentCity.city.label,
     });
-    return { ...response, cityId: city._id };
+    return { ...response, cityId: currentCity._id };
   }
 
-  async updateEvent({ updatedEvent, file }: IUpdateEvent) {
-    const { cityId, eventId } = updatedEvent;
+  async updateEvent({
+    updatedEvent,
+    file,
+  }: {
+    updatedEvent: EventDto;
+    file?: Express.Multer.File;
+  }): Promise<any> {
+    const { cityId, eventId, ...bodyUpdatedEvent } = updatedEvent;
 
-    const city = await this.cityModel.findById(cityId);
-    if (!city) {
-      throw new Error(`City not found`);
-    }
+    const currentCity = await this.cityModel.findById(cityId);
+    if (!currentCity) throw new Error(`City not found`);
 
-    const eventIndex = city.events.findIndex(
-      (event: any) => event.id === eventId,
+    const eventIndex = currentCity.events.findIndex(
+      (event: IEventItem) => event.id === eventId,
     );
-    if (eventIndex === -1) {
-      throw new Error('Event not found');
-    }
+    if (eventIndex === -1) throw new Error('Event not found');
 
-    const foundEvent = city.events[eventIndex];
+    const foundEvent = currentCity.events[eventIndex];
     let imagePath = foundEvent.imagePath;
 
-    if (file && !foundEvent.imagePath) {
-      imagePath = await this.cloudService.addFileCloud(file);
-    } else if (file && foundEvent.imagePath) {
-      await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+    if (file) {
+      if (foundEvent.imagePath) {
+        await this.cloudService.deleteFileCloud(foundEvent.imagePath);
+      }
       imagePath = await this.cloudService.addFileCloud(file);
     }
 
-    const updatedEventObject = {
-      ...this.createEventObject(updatedEvent),
+    const newBodyEvent = {
+      ...bodyUpdatedEvent,
       imagePath: imagePath || foundEvent.imagePath,
       id: eventId,
     };
 
-    city.events[eventIndex] = updatedEventObject;
-    await city.save();
+    currentCity.events[eventIndex] = newBodyEvent;
+    await currentCity.save();
 
-    return { updatedEvent: updatedEventObject, cityId };
+    return { updatedEvent: newBodyEvent, cityId };
   }
 
-  async deleteEvent({ reqEvent, cityId, eventId }: IDeleteEvent) {
-    const city = await this.cityModel.findById(cityId);
-    const foundEventIndex = city.events.findIndex((e) => e.id === eventId);
+  async deleteEvent({
+    reqEvent,
+    cityId,
+    eventId,
+  }: {
+    reqEvent: RequestEventDto;
+    cityId: string;
+    eventId: string;
+  }): Promise<any> {
+    const currentCity = await this.cityModel.findById(cityId);
+    const foundEventIndex = currentCity.events.findIndex(
+      (event: IEventItem) => event.id === eventId,
+    );
 
     if (foundEventIndex !== -1) {
-      const foundEvent = city.events[foundEventIndex];
+      const foundEvent = currentCity.events[foundEventIndex];
 
       if (foundEvent.imagePath) {
         await this.cloudService.deleteFileCloud(foundEvent.imagePath);
       }
 
-      city.events.splice(foundEventIndex, 1);
-      await city.save();
+      currentCity.events.splice(foundEventIndex, 1);
+      await currentCity.save();
     }
 
     const response = await this.getEventOfDatabase({
       reqEvent,
-      cityName: city.city.label,
+      cityName: currentCity.city.label,
     });
     return response;
   }
@@ -136,6 +158,8 @@ export class EventService {
       price,
       imagePath,
       categories,
+      language,
+      minAge,
       showOnHomePage,
       showInCityHome,
       speakers,
@@ -147,10 +171,12 @@ export class EventService {
       date,
       seats,
       price,
-      categories: JSON.parse(categories),
-      showOnHomePage: JSON.parse(showOnHomePage),
-      showInCityHome: JSON.parse(showInCityHome),
-      speakers: JSON.parse(speakers),
+      language,
+      minAge,
+      categories: categories,
+      showOnHomePage: showOnHomePage,
+      showInCityHome: showInCityHome,
+      speakers: speakers,
     };
 
     if (imagePath) {
@@ -160,7 +186,7 @@ export class EventService {
     return newEvent;
   }
 
-  async getEventOfDatabase({ reqEvent, cityName, eventName }: IGetEvent) {
+  async getEventOfDatabase({ reqEvent, cityName, eventName }: any) {
     const { skip, limit } = processPaginationParams(reqEvent);
 
     if (cityName && eventName) {

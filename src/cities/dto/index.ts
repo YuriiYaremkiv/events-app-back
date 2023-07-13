@@ -1,3 +1,2 @@
-export { CityCreateDto } from './city.create.dto';
-export { CityUpdateDto } from './city.update.dto';
+export { CityDto } from './city.dto';
 export { RequestCityDto } from './req.city.dto';

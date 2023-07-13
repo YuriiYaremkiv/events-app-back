@@ -24,24 +24,7 @@ export class City {
   isHidden: boolean;
 
   @Prop()
-  events: [
-    {
-      id?: string;
-      eventId?: string;
-      cityId: string;
-      imagePath?: string;
-      title: string;
-      description: string;
-      date: string;
-      seats: number;
-      price: number;
-      categories: string;
-      showOnHomePage: boolean;
-      isHidden: boolean;
-      showInCityHome: boolean;
-      singleEvent: [];
-    },
-  ];
+  events: Array<any>;
 }
 
 export const CitySchema = SchemaFactory.createForClass(City);

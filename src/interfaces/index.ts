@@ -1,3 +1,5 @@
+import { Types } from 'mongoose';
+
 interface ICountry {
   label: string;
   population: number;
@@ -35,19 +37,34 @@ export interface IEventItem {
   imagePath: string;
   categories: ICategoryItem[];
   speakers: ISpeaker[];
+  language: string;
+  minAge: number;
   showOnHomePage: boolean;
   showInCityHome: boolean;
   isHidden: boolean;
 }
 
 export interface ICityItem {
-  _id: any;
+  _id: Types.ObjectId;
   country: ICountry;
   city: ICity;
   description: string;
   imagePath: string;
-  totalEvents: number;
+  totalEvents?: number;
   showOnHomePage: boolean;
   isHidden: boolean;
-  events: IEventItem[] | any;
+  events: IEventItem[];
+}
+
+export interface CityDataResponse {
+  cities: ICityItem[];
+  totalCities: number;
+  searchParams?: any;
+}
+
+export interface EventDataResponse {
+  events: any;
+  totalEvents?: number;
+  searchParams?: any;
+  cityId?: any;
 }

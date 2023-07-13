@@ -11,7 +11,7 @@ interface ProcessedPaginationParams {
 }
 
 export const processPaginationParams = (
-  query: PaginationParams,
+  query: any,
 ): ProcessedPaginationParams => {
   const { page = 1, limit = 10, sort = 'desc' } = query;
   const parsedLimit = Math.abs(limit) > 15 ? 15 : Math.abs(limit);

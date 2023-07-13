@@ -5,7 +5,7 @@ const bucketName = process.env.STORAGE_BUCKET_NAME;
 
 @Injectable()
 export class CloudService {
-  async addFileCloud(respFile: any): Promise<string> {
+  async addFileCloud(respFile: Express.Multer.File): Promise<string> {
     const fileName = `${Date.now()}-${respFile.originalname}`;
     const file = storage.bucket(bucketName).file(fileName);
     await file.save(respFile.buffer, {

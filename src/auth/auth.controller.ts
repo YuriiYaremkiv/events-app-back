@@ -38,15 +38,15 @@ export class AuthController {
     return { accessToken: tokens.accessToken };
   }
 
-  @UseGuards(AccessTokenGuard)
   @Get('logout')
+  @UseGuards(AccessTokenGuard)
   logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     res.cookie('refreshToken', null, { httpOnly: true });
     this.authService.logout(req.user['id']);
   }
 
-  @UseGuards(RefreshTokenGuard)
   @Get('refresh')
+  @UseGuards(RefreshTokenGuard)
   async refreshTokens(
     @Req() req: any,
     @Res({ passthrough: true }) res: Response,
