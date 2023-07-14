@@ -17,32 +17,32 @@ import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(AccessTokenGuard)
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
-  }
-
-  @UseGuards(AccessTokenGuard)
   @Get()
+  @UseGuards(AccessTokenGuard)
   findAll() {
     return this.usersService.findAll();
   }
 
-  @UseGuards(AccessTokenGuard)
   @Get(':id')
+  @UseGuards(AccessTokenGuard)
   findById(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
 
+  @Post()
   @UseGuards(AccessTokenGuard)
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
+
   @Patch(':id')
+  @UseGuards(AccessTokenGuard)
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
-  @UseGuards(AccessTokenGuard)
   @Delete(':id')
+  @UseGuards(AccessTokenGuard)
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }

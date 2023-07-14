@@ -16,7 +16,7 @@ import { EventDto } from './dto/event.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AccessTokenGuard } from '../common/guards/accessToken.guard';
 import { RequestEventDto } from './dto';
-import { IEventItem, EventDataResponse } from 'interfaces';
+import { EventDataResponse } from 'interfaces';
 
 @Controller('event')
 export class EventsController {
@@ -35,12 +35,12 @@ export class EventsController {
   getEvent(
     @Query() reqEvent: RequestEventDto,
     @Param('cityName') cityName: string,
-  ) {
+  ): Promise<any> {
     return this.eventService.getEvent({ reqEvent, cityName });
   }
 
   @Get()
-  getAllEvent(@Query() reqEvent: RequestEventDto) {
+  getAllEvent(@Query() reqEvent: RequestEventDto): Promise<any> {
     return this.eventService.getEvent({ reqEvent });
   }
 
@@ -51,7 +51,7 @@ export class EventsController {
     @Query() reqEvent: RequestEventDto,
     @Body() newEvent: EventDto,
     @UploadedFile() file: Express.Multer.File,
-  ) {
+  ): Promise<any> {
     return this.eventService.addEvent({ reqEvent, newEvent, file });
   }
 
@@ -61,7 +61,7 @@ export class EventsController {
   updateEvent(
     @Body() updatedEvent: EventDto,
     @UploadedFile() file: Express.Multer.File,
-  ) {
+  ): Promise<any> {
     return this.eventService.updateEvent({ updatedEvent, file });
   }
 
@@ -71,7 +71,7 @@ export class EventsController {
     @Param('cityId') cityId: string,
     @Param('eventId') eventId: string,
     @Query() reqEvent: RequestEventDto,
-  ) {
+  ): Promise<any> {
     return this.eventService.deleteEvent({ reqEvent, cityId, eventId });
   }
 }

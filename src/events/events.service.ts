@@ -1,30 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { City, CityDocument } from '../schema/city.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CloudService } from '../cloud/cloud.service';
 import { v4 as uuidv4 } from 'uuid';
-import { processPaginationParams } from '../config/pagination';
-import { RequestEventDto } from './dto';
 import { EventDto } from './dto/event.dto';
-import { EventDataResponse, IEventItem } from '../interfaces';
-
-interface IAddEvent {
-  reqEvent: RequestEventDto;
-  newEvent: EventDto;
-  file: Express.Multer.File | null;
-}
-
-interface IUpdateEvent {
-  updatedEvent: EventDto;
-  file: Express.Multer.File | null;
-}
-
-interface IDeleteEvent {
-  reqEvent: RequestEventDto;
-  cityId: string;
-  eventId: string;
-}
+import { CloudService } from '../cloud/cloud.service';
+import { RequestEventDto } from './dto';
+import { City, CityDocument } from '../schema/city.schema';
+import { processPaginationParams } from '../config/pagination';
+import {
+  EventDataResponse,
+  ICityItem,
+  IEventItem,
+  ICategoryEvent,
+} from '../interfaces';
 
 @Injectable()
 export class EventService {
@@ -125,7 +113,7 @@ export class EventService {
     reqEvent: RequestEventDto;
     cityId: string;
     eventId: string;
-  }): Promise<any> {
+  }): Promise<EventDataResponse> {
     const currentCity = await this.cityModel.findById(cityId);
     const foundEventIndex = currentCity.events.findIndex(
       (event: IEventItem) => event.id === eventId,
@@ -149,53 +137,27 @@ export class EventService {
     return response;
   }
 
-  createEventObject(eventDto: EventDto) {
-    const {
-      title,
-      description,
-      date,
-      seats,
-      price,
-      imagePath,
-      categories,
-      language,
-      minAge,
-      showOnHomePage,
-      showInCityHome,
-      speakers,
-    } = eventDto;
-
-    const newEvent: any = {
-      title,
-      description,
-      date,
-      seats,
-      price,
-      language,
-      minAge,
-      categories: categories,
-      showOnHomePage: showOnHomePage,
-      showInCityHome: showInCityHome,
-      speakers: speakers,
-    };
-
-    if (imagePath) {
-      newEvent.imagePath = newEvent;
-    }
-
-    return newEvent;
-  }
-
-  async getEventOfDatabase({ reqEvent, cityName, eventName }: any) {
+  async getEventOfDatabase({
+    reqEvent,
+    cityName,
+    eventName,
+  }: {
+    reqEvent: RequestEventDto;
+    cityName?: string;
+    eventName?: string;
+  }) {
     const { skip, limit } = processPaginationParams(reqEvent);
 
     if (cityName && eventName) {
-      const city: any = await this.cityModel.findOne({
-        'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
-      });
+      const city: ICityItem = await this.cityModel
+        .findOne({
+          'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
+        })
+        .lean();
       if (!city) return null;
-      const event = city.events.find(
-        (event: any) => event.title.toLowerCase() === eventName.toLowerCase(),
+      const event: IEventItem = city.events.find(
+        (event: IEventItem) =>
+          event.title.toLowerCase() === eventName.toLowerCase(),
       );
       return { events: event };
     }
@@ -215,7 +177,7 @@ export class EventService {
       return { events: filteredEvents };
     }
 
-    const city: any = await this.cityModel.findOne({
+    const city: ICityItem = await this.cityModel.findOne({
       'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
     });
 
@@ -241,7 +203,13 @@ export class EventService {
     };
   }
 
-  getFilteredEvents({ reqEvent, events }: any) {
+  getFilteredEvents({
+    reqEvent,
+    events,
+  }: {
+    reqEvent: any;
+    events: IEventItem[];
+  }) {
     const {
       query,
       dateStart,
@@ -253,7 +221,7 @@ export class EventService {
       categories,
     } = reqEvent;
 
-    const filteredEvents = events.filter((event: any) => {
+    const filteredEvents = events.filter((event: IEventItem) => {
       if (query) {
         if (
           event.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -275,7 +243,7 @@ export class EventService {
 
       if (categories) {
         const allCategoriesEvent = event.categories.map(
-          (cat: any) => cat.label,
+          (cat: ICategoryEvent) => cat.label,
         );
         const allcat = categories.split(',');
 
@@ -291,24 +259,26 @@ export class EventService {
     return filteredEvents;
   }
 
-  getSearchParamsOfCity({ city }: any) {
+  getSearchParamsOfCity({ city }: { city: ICityItem }) {
     const seatsMin = 0;
     const priceMin = 0;
     let seatsMax = 0;
     let priceMax = 0;
     const categories = [];
 
-    city.events.forEach((event: any) => {
+    city.events.forEach((event: IEventItem) => {
       if (seatsMax < event.seats) seatsMax = Number(event.seats);
       if (priceMax < event.price) priceMax = Number(event.seats);
       categories.push(...event.categories);
     });
 
-    const uniqueCategories = categories.filter((category, index: number) => {
-      return !categories.some(
-        (c, i) => c.label === category.label && i < index,
-      );
-    });
+    const uniqueCategories = categories.filter(
+      (category: ICategoryEvent, index: number) => {
+        return !categories.some(
+          (c, i) => c.label === category.label && i < index,
+        );
+      },
+    );
 
     return {
       seatsMin,

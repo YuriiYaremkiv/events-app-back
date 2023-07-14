@@ -1,28 +1,64 @@
 import {
-  IsBoolean,
-  IsString,
-  Length,
-  IsInt,
   Min,
   Max,
-  IsNotEmpty,
+  IsInt,
+  Length,
+  IsEmail,
+  IsString,
+  IsBoolean,
   IsOptional,
+  IsNotEmpty,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { TransformUtils } from '../../utils/transform.values';
 
 class speakerData {
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   firstname: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   lastname: string;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
+  @Max(100_000)
+  @Transform(TransformUtils.stringToNumber)
   age: number;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   about: string;
+
+  @IsNotEmpty()
+  @IsEmail({}, { message: 'Invalid email format' })
   email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   topic: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   telephone: string;
 }
 
 class categoriesData {
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   label: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   color: string;
 }
 

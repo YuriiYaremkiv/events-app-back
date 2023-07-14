@@ -11,6 +11,11 @@ interface ICity {
   phone: string;
 }
 
+export interface ICategoryEvent {
+  label: string;
+  color: string;
+}
+
 export interface ICategoryItem {
   label: string;
   color: string;

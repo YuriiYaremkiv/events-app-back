@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { CloudService } from '../cloud/cloud.service';
+import { CitiesService } from './cities.service';
 import { City, CitySchema } from '../schema/city.schema';
 import { CitiesController } from './cities.controller';
-import { CitiesService } from './cities.service';
-import { CloudService } from '../cloud/cloud.service';
 
 @Module({
   imports: [

@@ -1,9 +1,3 @@
-interface PaginationParams {
-  page: number;
-  limit: number;
-  sort?: string;
-}
-
 interface ProcessedPaginationParams {
   skip: number;
   limit: number;

@@ -1,19 +1,26 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { EventsController } from './events/events.controller';
-import { EventsModule } from './events/events.module';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { CloudService } from './cloud/cloud.service';
+import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { CitiesController } from './cities/cities.controller';
-import { CitiesService } from './cities/cities.service';
+import { EventsModule } from './events/events.module';
 import { CitiesModule } from './cities/cities.module';
+import { CloudService } from './cloud/cloud.service';
+import { AppController } from './app.controller';
+import { EventsController } from './events/events.controller';
+import { CitiesController } from './cities/cities.controller';
+import { CategoriesController } from './categories/categories.controller';
+import { CategoriesService } from './categories/categories.service';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
-  controllers: [AppController, EventsController, CitiesController],
+  controllers: [
+    AppController,
+    EventsController,
+    CitiesController,
+    CategoriesController,
+  ],
   providers: [AppService, CloudService],
   imports: [
     ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true }),
@@ -22,6 +29,7 @@ import { CitiesModule } from './cities/cities.module';
     AuthModule,
     UsersModule,
     CitiesModule,
+    CategoriesModule,
   ],
 })
 export class AppModule {}

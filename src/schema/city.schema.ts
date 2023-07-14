@@ -1,8 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 
-export type CityDocument = HydratedDocument<City>;
-
 @Schema()
 export class City {
   @Prop({ required: true, type: mongoose.Schema.Types.Mixed })
@@ -28,3 +26,4 @@ export class City {
 }
 
 export const CitySchema = SchemaFactory.createForClass(City);
+export type CityDocument = HydratedDocument<City>;
