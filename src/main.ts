@@ -15,7 +15,11 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://events-app-front.vercel.app'],
+    origin: [
+      'http://localhost:3000',
+      'https://events-app-front.vercel.app',
+      'https://events-app-admin-front.vercel.app',
+    ],
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });

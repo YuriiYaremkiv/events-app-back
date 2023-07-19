@@ -17,7 +17,6 @@ export class CategoriesController {
   constructor(private categoriesService: CategoriesService) {}
 
   @Get('country')
-  @UseGuards(AccessTokenGuard)
   getCountry() {
     return this.categoriesService.getCountry();
   }
