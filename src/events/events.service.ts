@@ -8,10 +8,11 @@ import { RequestEventDto } from './dto';
 import { City, CityDocument } from '../schema/city.schema';
 import { processPaginationParams } from '../config/pagination';
 import {
-  EventDataResponse,
   ICityItem,
   IEventItem,
   ICategoryEvent,
+  EventDataResponse,
+  IEventItemResponse,
 } from '../interfaces';
 
 @Injectable()
@@ -50,7 +51,7 @@ export class EventService {
   }): Promise<EventDataResponse> {
     const { cityId, ...bodyNewEvent } = newEvent;
 
-    const currentCity = await this.cityModel.findById(cityId).lean();
+    const currentCity = await this.cityModel.findById(cityId);
     if (!currentCity) throw new Error(`City not found`);
 
     const imagePath = file ? await this.cloudService.addFileCloud(file) : '';
@@ -155,10 +156,13 @@ export class EventService {
         })
         .lean();
       if (!city) return null;
-      const event: IEventItem = city.events.find(
+      const event: IEventItemResponse = city.events.find(
         (event: IEventItem) =>
           event.title.toLowerCase() === eventName.toLowerCase(),
       );
+      event.country = city.country;
+      event.city = city.city;
+
       return { events: event };
     }
 

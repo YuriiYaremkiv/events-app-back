@@ -15,6 +15,9 @@ export class City {
   @Prop({ default: '' })
   imagePath: string;
 
+  @Prop({ default: 1 })
+  priorityDisplay: number;
+
   @Prop({ default: false })
   showOnHomePage: boolean;
 

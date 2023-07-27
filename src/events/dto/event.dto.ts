@@ -96,6 +96,13 @@ export class EventDto {
   @IsNotEmpty()
   @IsInt()
   @Min(1)
+  @Max(1000)
+  @Transform(TransformUtils.stringToNumber)
+  readonly time: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
   @Max(100_000)
   @Transform(TransformUtils.stringToNumber)
   readonly seats: number;
@@ -130,6 +137,13 @@ export class EventDto {
   @Max(100)
   @Transform(TransformUtils.stringToNumber)
   readonly minAge: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  @Transform(TransformUtils.stringToNumber)
+  readonly priorityDisplay: number;
 
   @IsNotEmpty()
   @IsBoolean()

@@ -68,6 +68,13 @@ export class CityDto {
   imagePath?: string;
 
   @IsNotEmpty()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  @Transform(TransformUtils.stringToNumber)
+  readonly priorityDisplay: number;
+
+  @IsNotEmpty()
   @IsBoolean()
   @Transform(TransformUtils.stringToBoolean)
   readonly showOnHomePage: string;

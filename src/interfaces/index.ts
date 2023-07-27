@@ -49,6 +49,11 @@ export interface IEventItem {
   isHidden: boolean;
 }
 
+export interface IEventItemResponse extends IEventItem {
+  country?: ICountry;
+  city?: ICity;
+}
+
 export interface ICityItem {
   _id: Types.ObjectId;
   country: ICountry;
