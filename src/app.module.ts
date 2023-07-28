@@ -13,6 +13,9 @@ import { CitiesController } from './cities/cities.controller';
 import { CategoriesController } from './categories/categories.controller';
 import { CategoriesService } from './categories/categories.service';
 import { CategoriesModule } from './categories/categories.module';
+import { MailController } from './mail/mail.controller';
+import { MailService } from './mail/mail.service';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   controllers: [
@@ -20,8 +23,9 @@ import { CategoriesModule } from './categories/categories.module';
     EventsController,
     CitiesController,
     CategoriesController,
+    MailController,
   ],
-  providers: [AppService, CloudService],
+  providers: [AppService, CloudService, MailService],
   imports: [
     ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true }),
     MongooseModule.forRoot(process.env.MONGO_URL),
@@ -30,6 +34,7 @@ import { CategoriesModule } from './categories/categories.module';
     UsersModule,
     CitiesModule,
     CategoriesModule,
+    MailModule,
   ],
 })
 export class AppModule {}

@@ -168,14 +168,16 @@ export class EventService {
 
     if (!cityName) {
       const cities = await this.cityModel.find({}).lean();
-      const allEvents = cities.flatMap((city) => {
-        const updatedEvents = city.events.map((event) => ({
-          ...event,
-          city: city.city,
-          country: city.country,
-        }));
-        return updatedEvents;
-      });
+      const allEvents = cities
+        .flatMap((city) => {
+          const updatedEvents = city.events.map((event) => ({
+            ...event,
+            city: city.city,
+            country: city.country,
+          }));
+          return updatedEvents;
+        })
+        .sort((a, b) => b.priorityDisplay - a.priorityDisplay);
 
       const filteredEvents = allEvents.filter((event) => event.showOnHomePage);
       return { events: filteredEvents };

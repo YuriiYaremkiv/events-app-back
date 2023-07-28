@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, SortOrder } from 'mongoose';
 import { CloudService } from '../cloud/cloud.service';
 import { City, CityDocument } from '../schema/city.schema';
 import { CityDto, RequestCityDto } from './dto';
@@ -99,9 +99,17 @@ export class CitiesService {
     if (countries) query['country.label'] = { $in: countries.split(',') };
     if (cities) query['city.label'] = { $in: cities.split(',') };
 
+    const sort: { [key: string]: SortOrder } = { priorityDisplay: -1 };
+
     const [totalCities, allCities] = await Promise.all([
       this.cityModel.countDocuments(),
-      this.cityModel.find(query).select('-__v').skip(skip).limit(limit).lean(),
+      this.cityModel
+        .find(query)
+        .select('-__v')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
     ]);
 
     const response: any = {};
