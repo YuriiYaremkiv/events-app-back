@@ -116,7 +116,16 @@ export class CitiesService {
     if (!showOnHomePage) {
       const allCities: ICityItem[] = await this.cityModel.find({}).lean();
 
-      const countries = [...new Set(allCities.map((city) => city.country))];
+      const countries = allCities.reduce((uniqueCountries, city) => {
+        if (
+          !uniqueCountries.some(
+            (country) => country.label === city.country.label,
+          )
+        ) {
+          uniqueCountries.push(city.country);
+        }
+        return uniqueCountries;
+      }, []);
       const cities = [...new Set(allCities.map((city) => city.city))];
       response.searchParams = { countries, cities };
     }
