@@ -1,3 +1,4 @@
+import { Length } from 'class-validator';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -238,25 +239,24 @@ export class EventService {
         return false;
       }
 
-      if (new Date(dateStart) >= new Date(event.date)) return false;
-      if (new Date(dateEnd) >= new Date(event.date)) return false;
+      if (new Date(dateStart) > new Date(event.date)) return false;
+      if (new Date(dateEnd) < new Date(event.date)) return false;
 
-      if (priceMin >= event.price) return false;
-      if (priceMax <= event.price) return false;
+      if (priceMin > event.price) return false;
+      if (priceMax < event.price) return false;
 
-      if (seatsMin >= event.seats) return false;
-      if (seatsMax <= event.seats) return false;
+      if (seatsMin > event.seats) return false;
+      if (seatsMax < event.seats) return false;
 
-      if (categories) {
-        const allCategoriesEvent = event.categories.map(
-          (cat: ICategoryEvent) => cat.label,
+      if (categories && event.categories.length > 0) {
+        const searchCategories = categories.split(',');
+        const eventCategories = event.categories.map(
+          (category: ICategoryEvent) => category.label,
         );
-        const allcat = categories.split(',');
 
-        for (const cat of allcat) {
-          if (allCategoriesEvent.includes(cat)) return true;
-        }
-        return false;
+        const allCategories = [...eventCategories, ...searchCategories];
+        const newSet = new Set(allCategories);
+        if (newSet.size === allCategories.length) return false;
       }
 
       return true;
