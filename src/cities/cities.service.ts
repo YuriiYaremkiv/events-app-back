@@ -102,7 +102,7 @@ export class CitiesService {
     const sort: { [key: string]: SortOrder } = { priorityDisplay: -1 };
 
     const [totalCities, allCities] = await Promise.all([
-      this.cityModel.countDocuments(),
+      this.cityModel.countDocuments(query),
       this.cityModel
         .find(query)
         .select('-__v')
@@ -135,7 +135,12 @@ export class CitiesService {
 
       city.events = city.events.reduce(
         (
-          acc: { title: string; date: string; imagePath: string }[],
+          acc: {
+            title: string;
+            date: string;
+            imagePath: string;
+            rating: number;
+          }[],
           event: IEventItem,
         ) => {
           if (event.showInCityHome) {
@@ -143,6 +148,7 @@ export class CitiesService {
               title: event.title,
               date: event.date,
               imagePath: event.imagePath,
+              rating: Number(event.rating),
             });
           }
           return acc;

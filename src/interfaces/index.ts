@@ -35,6 +35,7 @@ export interface ISpeaker {
 export interface IEventItem {
   id: string;
   title: string;
+  rating: number;
   description: string;
   date: string;
   seats: number;
