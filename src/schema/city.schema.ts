@@ -9,6 +9,9 @@ export class City {
   @Prop({ required: true, type: mongoose.Schema.Types.Mixed })
   city: { label: string; population: number; country: string };
 
+  @Prop({ default: 0 })
+  rating: number;
+
   @Prop({ default: '' })
   description: string;
 

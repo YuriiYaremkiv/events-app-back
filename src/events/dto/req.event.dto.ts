@@ -6,13 +6,13 @@ export class RequestEventDto {
   @IsInt()
   @Min(1)
   @IsOptional()
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly page?: number;
 
   @IsInt()
   @Min(1)
   @IsOptional()
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly limit?: number;
 
   @IsString()

@@ -38,7 +38,7 @@ class CityData {
   @IsInt()
   @Min(1)
   @Max(30000000)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   population: number;
 
   @IsNotEmpty()
@@ -59,6 +59,12 @@ export class CityDto {
   readonly city: CityData;
 
   @IsNotEmpty()
+  @Min(1)
+  @Max(5)
+  @Transform(TransformUtils.stringToNumberFloat)
+  readonly rating: number;
+
+  @IsNotEmpty()
   @IsString()
   @Length(6, 300)
   readonly description: string;
@@ -71,7 +77,7 @@ export class CityDto {
   @IsInt()
   @Min(1)
   @Max(1000)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly priorityDisplay: number;
 
   @IsNotEmpty()

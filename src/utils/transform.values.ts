@@ -6,9 +6,14 @@ export class TransformUtils {
     return value === 'true';
   }
 
-  static stringToNumber(params: TransformFnParams): number {
+  static stringToNumberInt(params: TransformFnParams): number {
     const value = params.value as string;
     return parseInt(value, 10);
+  }
+
+  static stringToNumberFloat(params: TransformFnParams): number {
+    const value = params.value as string;
+    return Number(parseFloat(value).toFixed(1));
   }
 
   static stringToObject(params: TransformFnParams): any {

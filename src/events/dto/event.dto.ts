@@ -27,7 +27,7 @@ class speakerData {
   @IsInt()
   @Min(1)
   @Max(100_000)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   age: number;
 
   @IsNotEmpty()
@@ -97,21 +97,21 @@ export class EventDto {
   @IsInt()
   @Min(1)
   @Max(1000)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly time: number;
 
   @IsNotEmpty()
   @IsInt()
   @Min(1)
   @Max(100_000)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly seats: number;
 
   @IsNotEmpty()
   @IsInt()
   @Min(1)
   @Max(100_000)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly price: number;
 
   @IsNotEmpty()
@@ -135,14 +135,14 @@ export class EventDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly minAge: number;
 
   @IsNotEmpty()
   @IsInt()
   @Min(1)
   @Max(1000)
-  @Transform(TransformUtils.stringToNumber)
+  @Transform(TransformUtils.stringToNumberInt)
   readonly priorityDisplay: number;
 
   @IsNotEmpty()
