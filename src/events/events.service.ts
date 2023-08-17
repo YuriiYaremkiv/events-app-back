@@ -294,4 +294,42 @@ export class EventService {
       categories: uniqueCategories,
     };
   }
+
+  async getEventParams(cityName: string) {
+    const city: ICityItem = await this.cityModel.findOne({
+      'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
+    });
+
+    if (!city) {
+      throw new Error('Not Found City');
+    }
+
+    const seatsMin = 0;
+    const priceMin = 0;
+    let seatsMax = 0;
+    let priceMax = 0;
+    const categories = [];
+
+    city.events.forEach((event: IEventItem) => {
+      if (seatsMax < event.seats) seatsMax = Number(event.seats);
+      if (priceMax < event.price) priceMax = Number(event.seats);
+      categories.push(...event.categories);
+    });
+
+    const uniqueCategories = categories.filter(
+      (category: ICategoryEvent, index: number) => {
+        return !categories.some(
+          (c, i) => c.label === category.label && i < index,
+        );
+      },
+    );
+
+    return {
+      seatsMin,
+      seatsMax,
+      priceMin,
+      priceMax,
+      categories: uniqueCategories,
+    };
+  }
 }
