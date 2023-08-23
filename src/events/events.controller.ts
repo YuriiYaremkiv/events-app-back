@@ -27,6 +27,14 @@ export class EventsController {
     return this.eventService.getEventParams(cityName);
   }
 
+  @Get('recommendation/:cityName/:eventName')
+  getRecommendedEvents(
+    @Param('cityName') cityName: string,
+    @Param('eventName') eventName: string,
+  ) {
+    return this.eventService.getRecommendedEvents(cityName, eventName);
+  }
+
   @Get(':cityName/:eventName')
   getSingleEvent(
     @Query() reqEvent: RequestEventDto,

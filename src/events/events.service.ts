@@ -332,4 +332,22 @@ export class EventService {
       categories: uniqueCategories,
     };
   }
+
+  async getRecommendedEvents(cityName: string, eventName: string) {
+    const city: ICityItem = await this.cityModel
+      .findOne({
+        'city.label': { $regex: new RegExp(`^${cityName}$`, 'i') },
+      })
+      .lean();
+
+    if (!city) {
+      throw new Error('Not Found City');
+    }
+
+    const events = city.events.filter((event) => {
+      return event.title.toLowerCase() !== eventName.toLowerCase();
+    });
+
+    return events;
+  }
 }
