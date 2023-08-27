@@ -19,7 +19,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'https://events-app-front.vercel.app',
       'https://events-app-admin-front.vercel.app',
-      'https://events-app-admin-front-yyaremkiv.vercel.app/login',
+      'https://events-app-admin-front-yyaremkiv.vercel.app',
     ],
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
