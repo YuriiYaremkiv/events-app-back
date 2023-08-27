@@ -1,4 +1,3 @@
-import { Length } from 'class-validator';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -65,7 +64,8 @@ export class EventService {
       reqEvent,
       cityName: currentCity.city.label,
     });
-    return { ...response, cityId: currentCity._id };
+
+    return { events: response.events, totalEvents: response.totalEvents };
   }
 
   async updateEvent({
@@ -349,5 +349,31 @@ export class EventService {
     });
 
     return events;
+  }
+
+  async getEventsByCityId({
+    reqEvent,
+    cityId,
+  }: {
+    reqEvent: RequestEventDto;
+    cityId: string;
+  }) {
+    const city: ICityItem = await this.cityModel.findById(cityId).lean();
+
+    if (!city) throw new Error('Not Found City');
+
+    return city.events;
+  }
+
+  async getEventById({ cityId, eventId }: { cityId: string; eventId: string }) {
+    const city: ICityItem = await this.cityModel.findById(cityId).lean();
+
+    if (!city) throw new Error('Not Found City');
+
+    const event = city.events.find((event) => event.id === eventId);
+
+    if (!event) throw new Error('Not Found Event');
+
+    return event;
   }
 }

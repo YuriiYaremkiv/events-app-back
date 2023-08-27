@@ -19,6 +19,15 @@ export class CitiesService {
     return response;
   }
 
+  async getCityById(cityId: string) {
+    const city = await this.cityModel.findById(cityId);
+
+    if (!city) throw new Error(`City not found`);
+    city.events = [];
+
+    return city;
+  }
+
   async addCity({
     reqCity,
     newCity,

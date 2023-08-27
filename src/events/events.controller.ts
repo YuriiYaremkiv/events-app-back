@@ -22,6 +22,25 @@ import { EventDataResponse } from 'interfaces';
 export class EventsController {
   constructor(private eventService: EventService) {}
 
+  //--------------------------------------------------------------------------------------
+  @Get('admin/:cityId/:eventId')
+  getEventById(
+    @Param('cityId') cityId: string,
+    @Param('eventId') eventId: string,
+  ) {
+    return this.eventService.getEventById({ cityId, eventId });
+  }
+
+  @Get('admin/:cityId')
+  getEventsByCityId(
+    @Query() reqEvent: RequestEventDto,
+    @Param('cityId') cityId: string,
+  ) {
+    return this.eventService.getEventsByCityId({ reqEvent, cityId });
+  }
+
+  //---------------------------------------------------------------------------------------
+
   @Get('params/:cityName')
   getEventParams(@Param('cityName') cityName: string) {
     return this.eventService.getEventParams(cityName);

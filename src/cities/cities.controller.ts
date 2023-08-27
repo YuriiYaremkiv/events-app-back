@@ -26,6 +26,12 @@ export class CitiesController {
     return this.citiesService.getCity(reqCity);
   }
 
+  @Get(':cityId')
+  @UseGuards(AccessTokenGuard)
+  getCityById(@Param('cityId') cityId: string) {
+    return this.citiesService.getCityById(cityId);
+  }
+
   @Post()
   @UseGuards(AccessTokenGuard)
   @UseInterceptors(FileInterceptor('picture'))
