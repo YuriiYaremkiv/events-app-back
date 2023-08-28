@@ -16,6 +16,11 @@ class speakerData {
   @IsNotEmpty()
   @IsString()
   @Length(6, 75)
+  id: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 75)
   firstname: string;
 
   @IsNotEmpty()

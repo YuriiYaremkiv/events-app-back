@@ -11,11 +11,12 @@ import { AppController } from './app.controller';
 import { EventsController } from './events/events.controller';
 import { CitiesController } from './cities/cities.controller';
 import { CategoriesController } from './categories/categories.controller';
-import { CategoriesService } from './categories/categories.service';
 import { CategoriesModule } from './categories/categories.module';
 import { MailController } from './mail/mail.controller';
 import { MailService } from './mail/mail.service';
 import { MailModule } from './mail/mail.module';
+import { SpeakerController } from './speaker/speaker.controller';
+import { SpeakerModule } from './speaker/speaker.module';
 
 @Module({
   controllers: [
@@ -24,6 +25,7 @@ import { MailModule } from './mail/mail.module';
     CitiesController,
     CategoriesController,
     MailController,
+    SpeakerController,
   ],
   providers: [AppService, CloudService, MailService],
   imports: [
@@ -35,6 +37,7 @@ import { MailModule } from './mail/mail.module';
     CitiesModule,
     CategoriesModule,
     MailModule,
+    SpeakerModule,
   ],
 })
 export class AppModule {}
