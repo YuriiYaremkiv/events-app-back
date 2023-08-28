@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { City, CityDocument } from '../schema/city.schema';
 import { CloudService } from '../cloud/cloud.service';
-import { Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import { IEventItem } from 'interfaces';
 
 @Injectable()
 export class SpeakerService {
