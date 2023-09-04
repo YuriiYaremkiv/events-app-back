@@ -1,32 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import {
-  IsString,
-  MinLength,
-  MaxLength,
-  Min,
-  Max,
-  IsNotEmpty,
-  Length,
-  IsInt,
-} from 'class-validator';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-
-class CityItem {
-  @IsString()
-  @MinLength(2)
-  @MaxLength(75)
-  label: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(30000000)
-  population: number;
-
-  @IsNotEmpty()
-  @IsString()
-  @Length(2, 75)
-  country: string;
-}
+import { Length } from 'class-validator';
+import { Document } from 'mongoose';
 
 @Schema()
 export class Country {

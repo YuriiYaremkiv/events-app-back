@@ -1,33 +1,4 @@
-import {
-  IsString,
-  MinLength,
-  MaxLength,
-  Min,
-  Max,
-  IsNotEmpty,
-  Length,
-  IsInt,
-  IsOptional,
-} from 'class-validator';
-import { Transform } from 'class-transformer';
-import { TransformUtils } from '../../utils/transform.values';
-
-class CityItem {
-  @IsString()
-  @MinLength(2)
-  @MaxLength(75)
-  label: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(30000000)
-  population: number;
-
-  @IsNotEmpty()
-  @IsString()
-  @Length(2, 75)
-  country: string;
-}
+import { IsString, IsNotEmpty, Length, IsOptional } from 'class-validator';
 
 export class CountryDto {
   @IsNotEmpty()
@@ -47,4 +18,8 @@ export class CountryDto {
 
   @IsOptional()
   cities: any;
+}
+
+export class UpdatedCountryDto extends CountryDto {
+  _id: string;
 }
