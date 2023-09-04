@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Country, CountryDocument } from './schemas/country.schema';
 import { UpdatedCountryDto } from './dto/country.dto';
 import { CountrySortField, RequestCountryDto } from './dto/req.country.dto';
-import { processPaginationParams } from 'config/pagination';
+import { processPaginationParams } from '../config/pagination';
 
 @Injectable()
 export class CategoriesService {

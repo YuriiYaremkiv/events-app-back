@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, SortOrder } from 'mongoose';
+import { Model } from 'mongoose';
 import { CloudService } from '../cloud/cloud.service';
 import { City, CityDocument } from '../schema/city.schema';
 import { CityDto, RequestCityDto } from './dto';
