@@ -13,10 +13,10 @@ import { CitiesController } from './cities/cities.controller';
 import { CategoriesController } from './categories/categories.controller';
 import { CategoriesModule } from './categories/categories.module';
 import { MailController } from './mail/mail.controller';
-import { MailService } from './mail/mail.service';
 import { MailModule } from './mail/mail.module';
 import { SpeakerController } from './speaker/speaker.controller';
 import { SpeakerModule } from './speaker/speaker.module';
+import { NodemailerService } from './cloud/mail.service';
 
 @Module({
   controllers: [
@@ -27,7 +27,7 @@ import { SpeakerModule } from './speaker/speaker.module';
     MailController,
     SpeakerController,
   ],
-  providers: [AppService, CloudService, MailService],
+  providers: [AppService, CloudService, NodemailerService],
   imports: [
     ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true }),
     MongooseModule.forRoot(process.env.MONGO_URL),

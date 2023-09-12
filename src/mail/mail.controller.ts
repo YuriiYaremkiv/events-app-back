@@ -1,17 +1,18 @@
-import { Post, Controller } from '@nestjs/common';
+import { Post, Controller, Body } from '@nestjs/common';
 import { MailService } from './mail.service';
+import { RegisterEventDto } from './dto/register.event.dto';
 
 @Controller('mail')
 export class MailController {
   constructor(private mailService: MailService) {}
 
   @Post('subscription')
-  subscription() {
-    return null;
+  subscriptionToNews() {
+    return this.mailService.subscriptionToNews();
   }
 
   @Post('register')
-  registerToEvent() {
-    return null;
+  registerToEvent(@Body() formRegister: RegisterEventDto) {
+    return this.mailService.registerToEvent(formRegister);
   }
 }
