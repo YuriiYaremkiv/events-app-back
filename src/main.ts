@@ -20,6 +20,7 @@ async function bootstrap() {
       'https://events-app-front.vercel.app',
       'https://events-app-admin-front.vercel.app',
       'https://events-app-admin-front-yyaremkiv.vercel.app',
+      'https://events-application-omega.vercel.app',
     ],
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
